@@ -1,2 +1,2 @@
 # Word-Quizzle
-Word Quizzle application for the networking course project at UniPi.
+Word Quizzle application for the networking course at UniPi.
