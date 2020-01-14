@@ -54,20 +54,20 @@ public class LogoutTask implements Runnable {
     /**
      * Returns a new LogoutTask.
      * 
-     * @param datab   the database.
      * @param onlineu the list of online users.
+     * @param baddr   the list of UDP addresses of the clients.
      * @param sel     the selector.
      * @param selk    the selection key of interest.
      * @param brutal  if {@code true} performs a brutal logout.
      */
-    public LogoutTask(final ConcurrentHashMap<Integer, String> ou,
-            final ConcurrentHashMap<String, InetSocketAddress> baddr, final Selector sl, final SelectionKey sk,
-            final boolean b) {
-        this.onlineUsers = ou;
+    public LogoutTask(final ConcurrentHashMap<Integer, String> onlineu,
+            final ConcurrentHashMap<String, InetSocketAddress> baddr, final Selector sel, final SelectionKey selk,
+            final boolean brutal) {
+        this.onlineUsers = onlineu;
         this.matchBookAddress = baddr;
-        this.selector = sl;
-        this.key = sk;
-        this.brutal = b;
+        this.selector = sel;
+        this.key = selk;
+        this.brutal = brutal;
     }
 
     /**

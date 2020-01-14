@@ -64,7 +64,7 @@ public class WQDatabase {
      * @param password the user's password.
      * @return {@code true} if the user has been added {@code false} otherwise.
      */
-    public boolean insertUser(final String nickname, final String password) {
+    public synchronized boolean insertUser(final String nickname, final String password) {
         final int hash = password.hashCode();
         final WQUser usr = new WQUser(nickname, hash);
         if (userDB.putIfAbsent(nickname, usr) == null) {
@@ -87,7 +87,7 @@ public class WQDatabase {
      * @param friendNickname the friend to be added.
      * @return {@code true} if the friend has been added {@code false} otherwise.
      */
-    protected boolean addFriend(final String nickname, final String friendNickname) {
+    protected synchronized boolean addFriend(final String nickname, final String friendNickname) {
         WQUser user = this.retrieveUser(nickname);
         ArrayList<String> uFriends = user.getFriends();
         if (uFriends.contains(friendNickname))

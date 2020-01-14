@@ -91,7 +91,8 @@ public class WQWords {
      * 
      * @throws IOException if something wrong happens during the getTranslation
      *                     call.
-     * 
+     * @return an hashmap where the keys are the words and the values are the
+     *         ArrayList containing the words translation.
      */
     protected HashMap<String, ArrayList<String>> requestWords() throws IOException {
         ArrayList<String> selectedWords = new ArrayList<String>();

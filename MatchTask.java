@@ -24,9 +24,9 @@ import java.util.concurrent.ConcurrentHashMap;
  * MatchTask it means that an user challenged one of his friends. After
  * performing all the operation's legality checks of the case, such as returning
  * an error message if the user is trying to match himslef or an offline friend,
- * MatchTask initialize the {@matchSelector} used to read the user's translation
- * from their match sockets and sends an UDP invitation message to the
- * challenged user containing the nickname of the challenging user and a TCP
+ * MatchTask initialize the {@code matchSelector} used to read the users'
+ * translation from their match sockets and sends an UDP invitation message to
+ * the challenged user containing the nickname of the challenging user and a TCP
  * port, i.e. the {@code matchChannel}'s socket port, that, if he accepts the
  * invitation, must be used to join the match. The invitation time to live is
  * implemented by setting a timeout on the {@code invSocket}, which is the
@@ -113,7 +113,7 @@ public class MatchTask implements Runnable {
      * @param maddr   the list of online users UDP addresses.
      * @param sel     the selector.
      * @param selk    the selection key of interest.
-     * @param friends the friend to challenge.
+     * @param frnd    the friend to challenge.
      * @param n       the match legth.
      * @param m       the invite duration.
      * @param l       the number of words.

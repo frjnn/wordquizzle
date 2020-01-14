@@ -508,7 +508,7 @@ public class WQClient {
         // Prints the correct usage.
         if (args.length > 0 && args[0].equals("--help")) {
             System.out.println("Commands:" + "\n" + "\tregister <username> <password> - registers the user." + "\n"
-                    + "\tlogin <username> <password> - logs in an user." + "\n" + "\tlogout - logs out the user." + "\n"
+                    + "\tlogin - logs in an user." + "\n" + "\tlogout - logs out the user." + "\n"
                     + "\tadd_friend <nickFriend> - adds nickFriend as a friend." + "\n"
                     + "\tfriend_list - shows the friend lists." + "\n"
                     + "\tmatch <nickFriend> - sends a match request to a friend." + "\n"
@@ -610,7 +610,6 @@ class MatchListener implements Runnable {
             System.out.print("> ");
             // Puts the challenger in the pending list.
             challengers.put(challenger, response);
-
         }
     }
 }

@@ -92,7 +92,7 @@ public class WQUser implements Comparable<WQUser> {
      * user's friend score. In order to do that WQUser class implements the
      * comparable interface.
      * 
-     * @param user
+     * @param user another user to compare this with.
      */
     @Override
     public int compareTo(final WQUser user) {

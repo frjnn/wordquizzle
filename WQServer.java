@@ -141,6 +141,12 @@ public class WQServer extends UnicastRemoteObject implements WQRegistrationRMI {
      */
     private final int numWords;
 
+    /**
+     * The maximum number of threads in the threadpool, an hihg number would be
+     * useful for executing multiple MatchTasks at the same time.
+     */
+    private final int threads;
+
     /* ---------------- Public operations -------------- */
 
     /**
@@ -154,13 +160,15 @@ public class WQServer extends UnicastRemoteObject implements WQRegistrationRMI {
      * @param invitation the espiry time of a match invitation in seconds.
      * @param words      the number of words to be provided for tradution during a
      *                   match.
+     * @param thr        the maxPoolSize of the ThreadPoolExecutor.
      * @throws RemoteException could be be thrown, WQServer is a remote object.
      */
-    public WQServer(final int port, int probe, final int length, final int invitation, final int words)
+    public WQServer(final int port, int probe, final int length, final int invitation, final int words, final int thr)
             throws RemoteException {
         super();
         this.database = new WQDatabase();
-        this.threadpool = new ThreadPoolExecutor(4, 4, 1, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>());
+        this.threads = thr;
+        this.threadpool = new ThreadPoolExecutor(4, threads, 1, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>());
         try {
             this.selector = Selector.open();
             this.TCP_channel = ServerSocketChannel.open();
@@ -215,19 +223,20 @@ public class WQServer extends UnicastRemoteObject implements WQRegistrationRMI {
      */
     public static void main(final String[] args) throws RemoteException {
 
+        // Checking main args.
+        if (args.length != 6 || args.length != 0 && args[0].equals("--help")) {
+            System.out.println(
+                    "Correct usage:\n\njava WQServer <TCP_port> <UDP_port> <match_timer> <invitation_timer> <num_words> <num_threads>");
+            System.exit(1);
+        }
+
         // Parsing main args.
         int tcp_port = Integer.parseInt(args[0]);
         int udp_port = Integer.parseInt(args[1]);
         int match_timer = Integer.parseInt(args[2]);
         int invitation_timer = Integer.parseInt(args[3]);
         int num_words = Integer.parseInt(args[4]);
-
-        // Checking main args.
-        if (args.length != 5) {
-            System.out.println(
-                    "Correct usage:\n\njava WQServer <TCP_port> <UDP_port> <match_timer> <invitation_timer> <num_words>");
-            System.exit(1);
-        }
+        int threads = Integer.parseInt(args[5]);
 
         if (tcp_port <= 1024 || udp_port <= 1024) {
             System.out.println("Please use ephemeral port numbers.");
@@ -244,8 +253,13 @@ public class WQServer extends UnicastRemoteObject implements WQRegistrationRMI {
             System.exit(1);
         }
 
+        if (threads < 4) {
+            System.out.println("The maximum pool size must be at least 4.");
+            System.exit(1);
+        }
+
         // Server creation.
-        final WQServer server = new WQServer(tcp_port, udp_port, match_timer, invitation_timer, num_words);
+        final WQServer server = new WQServer(tcp_port, udp_port, match_timer, invitation_timer, num_words, threads);
 
         // Remote method registration.
         LocateRegistry.createRegistry(5678);
