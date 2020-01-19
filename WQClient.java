@@ -564,7 +564,6 @@ public class WQClient {
 /**
  * This class implements the UDP socket listener waiting to receive match
  * invitations.
- * 
  */
 class MatchListener implements Runnable {
 

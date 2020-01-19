@@ -149,5 +149,4 @@ public class WQDatabase {
         final ConcurrentHashMap<String, WQUser> deserializedMap = gson.fromJson(json, type);
         this.userDB = deserializedMap;
     }
-
 }
