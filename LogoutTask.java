@@ -7,8 +7,8 @@ import java.nio.channels.SocketChannel;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * The class LogoutTask implements the logout of an user. After being logged
- * out, the user is removed from the WQServer's {@code onlineUsers} field which
+ * The class LogoutTask implements the logout of a user. After being logged out,
+ * the user is removed from the WQServer's {@code onlineUsers} field which
  * consists of a {@link ConcurrentHashMap} where the keys are the port numbers
  * on which the users are connected and the values are their nicknames.
  * LogoutTask then proceeds to close the SocketChannel associated with the
@@ -19,7 +19,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * <p>
  * It's good to note that LogoutTask provides also a brutal logout operation, in
  * the form of a field i.e. {@code brutal} in its costructor. The brutal logout
- * is useful when an user crashes.
+ * is useful when a user crashes.
  */
 public class LogoutTask implements Runnable {
 
@@ -99,7 +99,7 @@ public class LogoutTask implements Runnable {
         int clientPort = clientSocket.socket().getPort();
         String nickname = onlineUsers.get(clientPort);
 
-        // Brutally logs out an user.
+        // Brutally logs out a user.
         if (brutal) {
             if (nickname != null) {
                 matchBookAddress.remove(nickname);

@@ -6,7 +6,7 @@ import java.rmi.RemoteException;
  */
 public interface WQRegistrationRMI extends Remote {
     /**
-     * The remote method that implements the registration of an user to the
+     * The remote method that implements the registration of a user to the
      * {@code WQServer} service.
      * 
      * @param username the user's username.

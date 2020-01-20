@@ -145,7 +145,7 @@ public class WQClient {
     /**
      * Handles the logout of the user currently logged with this client.
      * 
-     * @throws IOException if an I/O error occurs when closing the client socket.
+     * @throws IOException if a I/O error occurs when closing the client socket.
      */
     private void logout() throws IOException {
         // Check if the user is logged in.
@@ -508,7 +508,7 @@ public class WQClient {
         // Prints the correct usage.
         if (args.length > 0 && args[0].equals("--help")) {
             System.out.println("Commands:" + "\n" + "\tregister <username> <password> - registers the user." + "\n"
-                    + "\tlogin - logs in an user." + "\n" + "\tlogout - logs out the user." + "\n"
+                    + "\tlogin - logs in a user." + "\n" + "\tlogout - logs out the user." + "\n"
                     + "\tadd_friend <nickFriend> - adds nickFriend as a friend." + "\n"
                     + "\tfriend_list - shows the friend lists." + "\n"
                     + "\tmatch <nickFriend> - sends a match request to a friend." + "\n"

@@ -21,7 +21,7 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * The MatchTask class implements the match between two users. The
  * implementation is the following: when the {@link WQServer} executes a
- * MatchTask it means that an user challenged one of his friends. After
+ * MatchTask it means that a user challenged one of his friends. After
  * performing all the operation's legality checks of the case, such as returning
  * an error message if the user is trying to match himslef or an offline friend,
  * MatchTask initialize the {@code matchSelector} used to read the users'
@@ -40,7 +40,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * WQServer's {@link WQDatabase} instance is serializaed to save the changes.
  * 
  * <p>
- * If an user correctly translates a word he is assigned 2 points, if he doesn't
+ * If a user correctly translates a word he is assigned 2 points, if he doesn't
  * he is assigned a score of -1 and if he skips the word he is assigned 0
  * points.
  * 
@@ -328,7 +328,7 @@ public class MatchTask implements Runnable {
                                             final SocketChannel clientChann = (SocketChannel) key.channel();
                                             final ByteBuffer clientBuff = (ByteBuffer) key.attachment();
                                             final String translation = readMsg(clientChann, clientBuff);
-                                            // If an user crashes setting to blank all og his remaining responses.
+                                            // If a user crashes setting to blank all og his remaining responses.
                                             if (translation.equals("crashed")) {
                                                 if (clientChann.socket().getPort() == challengedPort) {
                                                     for (int i = index2 - 1; i < matchWords; i++) {

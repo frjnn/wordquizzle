@@ -6,14 +6,14 @@ import java.nio.channels.SocketChannel;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * The class AddFriendTask implements the adding of friend by an user. After
+ * The class AddFriendTask implements the adding of friend by a user. After
  * being added, the friend's nick will be displayed in the user's friend list,
  * represented by the field {@code friends} of the class WQUser.
  * 
  * <p>
  * The class also takes care of checking the legality of the operation returning
  * to the client an error message if the user is trying to add himself as a
- * friend or is trying to add an user whom he is already friend with or the user
+ * friend or is trying to add a user whom he is already friend with or the user
  * he wants to add as a friend is not registered.
  */
 public class AddFriendTask implements Runnable {

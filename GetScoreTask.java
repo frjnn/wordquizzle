@@ -6,7 +6,7 @@ import java.nio.channels.SocketChannel;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * The class GetScoreTask implements the retrieval by an user of his score. Upon
+ * The class GetScoreTask implements the retrieval by a user of his score. Upon
  * the execution of this task the WQServer will return a number corresponding to
  * the user's score represented by the field {@code score} of the class WQUser.
  */
