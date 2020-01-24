@@ -138,6 +138,11 @@ public class MatchTask implements Runnable {
         final ByteBuffer bBuff = (ByteBuffer) key.attachment();
 
         String msg;
+        // Will be set to false if the mymemory service is not reachable.
+        boolean avaiable = true;
+        // Those booleans are used to temrinate the task if the service is unavaiable.
+        boolean term1 = false;
+        boolean term2 = false;
 
         // Retrieve the user's nickname from the port number.
         final int clientPort = clientSocket.socket().getPort();
@@ -300,9 +305,16 @@ public class MatchTask implements Runnable {
                         try {
                             dictionary = new WQWords(matchWords).requestWords();
                         } catch (final IOException e) {
-                            e.printStackTrace();
+                            // If the translation service is not avaiable.
+                            avaiable = false;
+                            // e.printStackTrace();
                         }
-                        final String[] words = dictionary.keySet().toArray(new String[dictionary.size()]);
+                        String[] words;
+                        if (avaiable) {
+                            words = dictionary.keySet().toArray(new String[dictionary.size()]);
+                        } else {
+                            words = null;
+                        }
                         // Setting the match timer.
                         final long startTime = System.currentTimeMillis();
                         long currentTime = System.currentTimeMillis();
@@ -311,7 +323,7 @@ public class MatchTask implements Runnable {
                         int index1 = 0;
                         int index2 = 0;
                         while (currentTime < (startTime + (matchTimer * 60000))
-                                && (index1 < matchWords + 1 || index2 < matchWords + 1)) {
+                                && (index1 < matchWords + 1 || index2 < matchWords + 1) && (!term1 || !term2)) {
                             try {
                                 final int readyKeys = matchSelector.selectNow();
                                 if (readyKeys > 0) {
@@ -343,28 +355,39 @@ public class MatchTask implements Runnable {
                                                 }
                                                 key.interestOps(0);
                                             } else {
-                                                // Submitting a new word.
-                                                final String[] split = translation.split("/");
-                                                final String name = split[1];
-                                                if (translation.equals("START/" + friend)) {
-                                                    writeMsg(words[index2] + "\n", clientBuff, clientChann);
-                                                    index2++;
-                                                } else if (translation.equals("START/" + nickname)) {
-                                                    writeMsg(words[index1] + "\n", clientBuff, clientChann);
-                                                    index1++;
+                                                // It means that the mymemoryAPI is down.
+                                                if (!avaiable) {
+                                                    writeMsg("Sorry, the translation service is unavaiable. Try later."
+                                                            + "\n", clientBuff, clientChann);
+                                                    if (clientChann.socket().getPort() == challengedPort) {
+                                                        term1 = true;
+                                                    } else {
+                                                        term2 = true;
+                                                    }
                                                 } else {
-                                                    if (name.equals(friend)) {
-                                                        response2[index2 - 1] = split[0];
-                                                        if (index2 < matchWords) {
-                                                            writeMsg(words[index2] + "\n", clientBuff, clientChann);
-                                                        }
+                                                    // Submitting a new word.
+                                                    final String[] split = translation.split("/");
+                                                    final String name = split[1];
+                                                    if (translation.equals("START/" + friend)) {
+                                                        writeMsg(words[index2] + "\n", clientBuff, clientChann);
                                                         index2++;
-                                                    } else if (name.equals(nickname)) {
-                                                        response1[index1 - 1] = split[0];
-                                                        if (index1 < matchWords) {
-                                                            writeMsg(words[index1] + "\n", clientBuff, clientChann);
-                                                        }
+                                                    } else if (translation.equals("START/" + nickname)) {
+                                                        writeMsg(words[index1] + "\n", clientBuff, clientChann);
                                                         index1++;
+                                                    } else {
+                                                        if (name.equals(friend)) {
+                                                            response2[index2 - 1] = split[0];
+                                                            if (index2 < matchWords) {
+                                                                writeMsg(words[index2] + "\n", clientBuff, clientChann);
+                                                            }
+                                                            index2++;
+                                                        } else if (name.equals(nickname)) {
+                                                            response1[index1 - 1] = split[0];
+                                                            if (index1 < matchWords) {
+                                                                writeMsg(words[index1] + "\n", clientBuff, clientChann);
+                                                            }
+                                                            index1++;
+                                                        }
                                                     }
                                                 }
                                             }
@@ -376,55 +399,57 @@ public class MatchTask implements Runnable {
                             }
                             currentTime = System.currentTimeMillis();
                         }
-                        // Computing the scores.
-                        int score1 = 0;
-                        int score2 = 0;
-                        final int bonus = 3;
-                        String msg1 = "";
-                        String msg2 = "";
-                        for (int i = 0; i < index1 - 1; i++) {
-                            final ArrayList<String> translation = dictionary.get(words[i]);
-                            if (translation.contains(response1[i])) {
-                                score1 += 2;
-                            } else if (response1[i].equals(""))
-                                score1 += 0;
-                            else
-                                score1 -= 1;
+                        if (avaiable) {
+                            // Computing the scores.
+                            int score1 = 0;
+                            int score2 = 0;
+                            final int bonus = 3;
+                            String msg1 = "";
+                            String msg2 = "";
+                            for (int i = 0; i < index1 - 1; i++) {
+                                final ArrayList<String> translation = dictionary.get(words[i]);
+                                if (translation.contains(response1[i])) {
+                                    score1 += 2;
+                                } else if (response1[i].equals(""))
+                                    score1 += 0;
+                                else
+                                    score1 -= 1;
+                            }
+                            for (int i = 0; i < index2 - 1; i++) {
+                                final ArrayList<String> translation = dictionary.get(words[i]);
+                                if (translation.contains(response2[i])) {
+                                    score2 += 2;
+                                } else if (response2[i].equals(""))
+                                    score2 += 0;
+                                else
+                                    score2 -= 1;
+                            }
+                            // Assigning the match bonus to the winner, if there's one.
+                            if (score1 < score2) {
+                                score2 += bonus;
+                                msg2 = "won";
+                                msg1 = "lost";
+                            } else if (score2 < score1) {
+                                score1 += bonus;
+                                msg2 = "lost";
+                                msg1 = "won";
+                            } else
+                                msg1 = msg2 = "drew";
+                            if (currentTime < (startTime + (matchTimer * 60000))) {
+                                writeMsg("END/You have scored: " + score1 + " points. You " + msg1 + ".\n",
+                                        resultsBuff1, results1);
+                                writeMsg("END/You have scored: " + score2 + " points. You " + msg2 + ".\n",
+                                        resultsBuff2, results2);
+                            } else {
+                                writeMsg("END/Time out: you have scored: " + score1 + " points. You " + msg1 + ".\n",
+                                        resultsBuff1, results1);
+                                writeMsg("END/Time out: you have scored: " + score2 + " points. You " + msg2 + "\n",
+                                        resultsBuff2, results2);
+                            }
+                            // Setting the scores in the database.
+                            database.setScore(nickname, score1);
+                            database.setScore(friend, score2);
                         }
-                        for (int i = 0; i < index2 - 1; i++) {
-                            final ArrayList<String> translation = dictionary.get(words[i]);
-                            if (translation.contains(response2[i])) {
-                                score2 += 2;
-                            } else if (response2[i].equals(""))
-                                score2 += 0;
-                            else
-                                score2 -= 1;
-                        }
-                        // Assigning the match bonus to the winner, if there's one.
-                        if (score1 < score2) {
-                            score2 += bonus;
-                            msg2 = "won";
-                            msg1 = "lost";
-                        } else if (score2 < score1) {
-                            score1 += bonus;
-                            msg2 = "lost";
-                            msg1 = "won";
-                        } else
-                            msg1 = msg2 = "drew";
-                        if (currentTime < (startTime + (matchTimer * 60000))) {
-                            writeMsg("END/You have scored: " + score1 + " points. You " + msg1 + ".\n", resultsBuff1,
-                                    results1);
-                            writeMsg("END/You have scored: " + score2 + " points. You " + msg2 + ".\n", resultsBuff2,
-                                    results2);
-                        } else {
-                            writeMsg("END/Time out: you have scored: " + score1 + " points. You " + msg1 + ".\n",
-                                    resultsBuff1, results1);
-                            writeMsg("END/Time out: you have scored: " + score2 + " points. You " + msg2 + "\n",
-                                    resultsBuff2, results2);
-                        }
-                        // Setting the scores in the database.
-                        database.setScore(nickname, score1);
-                        database.setScore(friend, score2);
                         key.interestOps(SelectionKey.OP_READ);
                         selector.wakeup();
                         return;

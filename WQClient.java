@@ -337,27 +337,34 @@ public class WQClient {
     private void matchLogic(Socket sock) {
         // Where the match logic is implemented.
         String input;
+        // If the server comunicates that the translation service is unavaiable.
+        boolean service = true;
         // The first message sent to the server contains "START/" followed by the user's
         // nick. It is useful to differentiate the sockets server side.
         String resp = clientComunicate(sock, "START/" + myName);
-        System.out.println("Translate all the following words:");
-        System.out.println("Server: " + resp);
-        String[] responseWords = resp.split(" ");
-        while (!responseWords[0].equals("END")) {
-            System.out.print("Translation: ");
-            input = cons.readLine();
-            input += "/" + myName;
-            System.out.print("Server: ");
-            resp = clientComunicate(sock, input);
-            responseWords = resp.split("/");
-            if (responseWords[0].equals("END")) {
-                break;
-            } else {
-                System.out.println(resp);
-            }
+        if (resp.equals("Sorry, the translation service is unavaiable. Try later.")) {
+            service = false;
+            System.out.println("Translate all the following words:");
         }
-        System.out.println(resp.substring(resp.indexOf("/") + 1));
-        return;
+        System.out.println("Server: " + resp);
+        if (service) {
+            String[] responseWords = resp.split(" ");
+            while (!responseWords[0].equals("END")) {
+                System.out.print("Translation: ");
+                input = cons.readLine();
+                input += "/" + myName;
+                System.out.print("Server: ");
+                resp = clientComunicate(sock, input);
+                responseWords = resp.split("/");
+                if (responseWords[0].equals("END")) {
+                    break;
+                } else {
+                    System.out.println(resp);
+                }
+            }
+            System.out.println(resp.substring(resp.indexOf("/") + 1));
+            return;
+        }
     }
 
     /**
@@ -378,16 +385,25 @@ public class WQClient {
         final String[] params = input.split(" ");
         switch (params[0]) {
         case "register":
-            registration(params[1], params[2]);
+            if (params.length == 3)
+                registration(params[1], params[2]);
+            else
+                System.out.println("Please enter valid username and password.");
             break;
         case "login":
-            login(params[1], params[2]);
+            if (params.length == 3)
+                login(params[1], params[2]);
+            else
+                System.out.println("Please enter valid username and password.");
             break;
         case "logout":
             logout();
             break;
         case "add_friend":
-            add_friend(params[1]);
+            if (params.length == 2)
+                add_friend(params[1]);
+            else
+                System.out.println("Enter valid username.");
             break;
         case "friend_list":
             friend_list();
@@ -399,16 +415,22 @@ public class WQClient {
             scoreboard();
             break;
         case "match":
-            match(params[1]);
+            if (params.length == 2)
+                match(params[1]);
+            else
+                System.out.println("Enter valid username.");
             break;
         case "show_matches":
             showMatches();
             break;
         case "accept_match":
-            acceptMatch(params[1]);
+            if (params.length == 2)
+                acceptMatch(params[1]);
+            else
+                System.out.println("Enter valid username.");
             break;
         default:
-            System.out.println("Wrong Usage.");
+            System.out.println("Wrong usage.");
             break;
         }
     }
