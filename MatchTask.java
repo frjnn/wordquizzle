@@ -51,7 +51,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * every missing translation to both users score. The match bonus assigned to
  * the winner consists in 3 points.
  */
-public class MatchTask implements Runnable {
+public class MatchTask implements TaskInterface {
 
     /* ---------------- Fields -------------- */
 
@@ -152,7 +152,7 @@ public class MatchTask implements Runnable {
         // friend's nickname.
         if (nickname.equals(friend)) {
             msg = "Match error: you cannot challenge yourself.\n";
-            writeMsg(msg, bBuff, clientSocket);
+            TaskInterface.writeMsg(msg, bBuff, clientSocket);
             key.interestOps(SelectionKey.OP_READ);
             selector.wakeup();
             return;
@@ -162,7 +162,7 @@ public class MatchTask implements Runnable {
             final ArrayList<String> challengerFriends = challenger.getFriends();
             if (!(challengerFriends.contains(friend))) {
                 msg = "Match error: user " + friend + " and you are not friends.\n";
-                writeMsg(msg, bBuff, clientSocket);
+                TaskInterface.writeMsg(msg, bBuff, clientSocket);
                 key.interestOps(SelectionKey.OP_READ);
                 selector.wakeup();
                 return;
@@ -170,7 +170,7 @@ public class MatchTask implements Runnable {
                 /// Check if the friend is offline.
                 if (!onlineUsers.containsValue(friend)) {
                     msg = "Match error: " + friend + " is offline\n";
-                    writeMsg(msg, bBuff, clientSocket);
+                    TaskInterface.writeMsg(msg, bBuff, clientSocket);
                     key.interestOps(SelectionKey.OP_READ);
                     selector.wakeup();
                     return;
@@ -208,18 +208,18 @@ public class MatchTask implements Runnable {
                     // destination.
                     final InetSocketAddress friendAddress = matchBookAddress.get(friend);
                     // Send the invitation.
-                    sendDatagram(invSocket, invitation, friendAddress);
+                    TaskInterface.sendDatagram(invSocket, invitation, friendAddress);
                     // Receive invitation.
                     String response = null;
                     try {
-                        response = receiveDatagram(invSocket);
+                        response = TaskInterface.receiveDatagram(invSocket);
                     } catch (final SocketTimeoutException e) {
                         msg = "Match error: invitation to " + friend + " timed out.\n";
                         // If the invitaiton times out, notifies the friend to delete the pending match
                         // invitation from his client's challengers hashmap.
                         byte[] friendMsg = ("TIMEOUT/" + nickname).getBytes();
-                        sendDatagram(invSocket, friendMsg, friendAddress);
-                        writeMsg(msg, bBuff, clientSocket);
+                        TaskInterface.sendDatagram(invSocket, friendMsg, friendAddress);
+                        TaskInterface.writeMsg(msg, bBuff, clientSocket);
                         key.interestOps(SelectionKey.OP_READ);
                         selector.wakeup();
                         return;
@@ -231,7 +231,7 @@ public class MatchTask implements Runnable {
                     // If the friends refuses must notify the challenging user.
                     if (response.equals("N")) {
                         msg = friend + " refused your match invitation.\n";
-                        writeMsg(msg, bBuff, clientSocket);
+                        TaskInterface.writeMsg(msg, bBuff, clientSocket);
                         key.interestOps(SelectionKey.OP_READ);
                         selector.wakeup();
                         return;
@@ -240,7 +240,7 @@ public class MatchTask implements Runnable {
                         // the match socket port and prepare the words.
                         msg = friend + " accepted your match invitation./" + matchChannel.socket().getLocalPort()
                                 + "\n";
-                        writeMsg(msg, bBuff, clientSocket);
+                        TaskInterface.writeMsg(msg, bBuff, clientSocket);
                         boolean joined1 = false; // Challenging user joined status.
                         boolean joined2 = false; // Challenged user joined status.
                         SocketChannel results1 = null; // Challenging user final score.
@@ -339,7 +339,7 @@ public class MatchTask implements Runnable {
                                             // Getting the translation submitted by the player.
                                             final SocketChannel clientChann = (SocketChannel) key.channel();
                                             final ByteBuffer clientBuff = (ByteBuffer) key.attachment();
-                                            final String translation = readMsg(clientChann, clientBuff);
+                                            final String translation = TaskInterface.readMsg(clientChann, clientBuff);
                                             // If a user crashes setting to blank all og his remaining responses.
                                             if (translation.equals("crashed")) {
                                                 if (clientChann.socket().getPort() == challengedPort) {
@@ -357,8 +357,10 @@ public class MatchTask implements Runnable {
                                             } else {
                                                 // It means that the mymemoryAPI is down.
                                                 if (!available) {
-                                                    writeMsg("Sorry, the translation service is unavailable. Try later."
-                                                            + "\n", clientBuff, clientChann);
+                                                    TaskInterface.writeMsg(
+                                                            "Sorry, the translation service is unavailable. Try later."
+                                                                    + "\n",
+                                                            clientBuff, clientChann);
                                                     if (clientChann.socket().getPort() == challengedPort) {
                                                         term1 = true;
                                                     } else {
@@ -369,22 +371,26 @@ public class MatchTask implements Runnable {
                                                     final String[] split = translation.split("/");
                                                     final String name = split[1];
                                                     if (translation.equals("START/" + friend)) {
-                                                        writeMsg(words[index2] + "\n", clientBuff, clientChann);
+                                                        TaskInterface.writeMsg(words[index2] + "\n", clientBuff,
+                                                                clientChann);
                                                         index2++;
                                                     } else if (translation.equals("START/" + nickname)) {
-                                                        writeMsg(words[index1] + "\n", clientBuff, clientChann);
+                                                        TaskInterface.writeMsg(words[index1] + "\n", clientBuff,
+                                                                clientChann);
                                                         index1++;
                                                     } else {
                                                         if (name.equals(friend)) {
                                                             response2[index2 - 1] = split[0];
                                                             if (index2 < matchWords) {
-                                                                writeMsg(words[index2] + "\n", clientBuff, clientChann);
+                                                                TaskInterface.writeMsg(words[index2] + "\n", clientBuff,
+                                                                        clientChann);
                                                             }
                                                             index2++;
                                                         } else if (name.equals(nickname)) {
                                                             response1[index1 - 1] = split[0];
                                                             if (index1 < matchWords) {
-                                                                writeMsg(words[index1] + "\n", clientBuff, clientChann);
+                                                                TaskInterface.writeMsg(words[index1] + "\n", clientBuff,
+                                                                        clientChann);
                                                             }
                                                             index1++;
                                                         }
@@ -436,14 +442,18 @@ public class MatchTask implements Runnable {
                             } else
                                 msg1 = msg2 = "drew";
                             if (currentTime < (startTime + (matchTimer * 60000))) {
-                                writeMsg("END/You have scored: " + score1 + " points. You " + msg1 + ".\n",
-                                        resultsBuff1, results1);
-                                writeMsg("END/You have scored: " + score2 + " points. You " + msg2 + ".\n",
-                                        resultsBuff2, results2);
+                                TaskInterface.writeMsg(
+                                        "END/You have scored: " + score1 + " points. You " + msg1 + ".\n", resultsBuff1,
+                                        results1);
+                                TaskInterface.writeMsg(
+                                        "END/You have scored: " + score2 + " points. You " + msg2 + ".\n", resultsBuff2,
+                                        results2);
                             } else {
-                                writeMsg("END/Time out: you have scored: " + score1 + " points. You " + msg1 + ".\n",
+                                TaskInterface.writeMsg(
+                                        "END/Time out: you have scored: " + score1 + " points. You " + msg1 + ".\n",
                                         resultsBuff1, results1);
-                                writeMsg("END/Time out: you have scored: " + score2 + " points. You " + msg2 + "\n",
+                                TaskInterface.writeMsg(
+                                        "END/Time out: you have scored: " + score2 + " points. You " + msg2 + "\n",
                                         resultsBuff2, results2);
                             }
                             // Setting the scores in the database.
@@ -457,104 +467,5 @@ public class MatchTask implements Runnable {
                 }
             }
         }
-    }
-
-    /**
-     * Utility function to send a datagram in a blocking UDP socket.
-     * 
-     * @param socket the socket.
-     * @param msg    the message to insert in the datagram.
-     * @param addr   the {@code InetSocketAddress} address.
-     */
-    private void sendDatagram(final DatagramSocket socket, final byte[] msg, final InetSocketAddress addr) {
-        final DatagramPacket datagram = new DatagramPacket(msg, msg.length, addr);
-        try {
-            socket.send(datagram);
-        } catch (final IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    /**
-     * Utility function to receive and read a message from a blocking UDP socket.
-     * 
-     * @param socket the socket.
-     * @return the red message.
-     * @throws SocketTimeoutException if the socket times out.
-     * @throws IOException            if something wrong happens during the call to
-     *                                {@code receive}.
-     */
-    private String receiveDatagram(final DatagramSocket socket) throws SocketTimeoutException, IOException {
-        final byte[] responseBuffer = new byte[16];
-        final DatagramPacket response = new DatagramPacket(responseBuffer, responseBuffer.length);
-        socket.receive(response);
-        final String responseString = new String(response.getData(), response.getOffset(), response.getLength(),
-                StandardCharsets.UTF_8);
-        return responseString;
-    }
-
-    /**
-     * Utility function to read a message from a NIO socket.
-     * 
-     * @param wqClient the socket.
-     * @param bBuff    the socket associated byte buffer.
-     * @return the message red.
-     */
-    private String readMsg(final SocketChannel wqClient, final ByteBuffer bBuff) {
-        final byte[] msg = new byte[128];
-        int index = 0;
-        int k;
-        boolean crash = false;
-        // Reading the socket.
-        try {
-            while ((k = wqClient.read(bBuff)) != 0 && !crash) {
-                // Client unexpectedly closed the connection.
-                if (k == -1) {
-                    crash = true;
-                }
-            }
-        } catch (final IOException e) {
-            e.printStackTrace();
-        }
-        // Preparing the buffer for reading form it.
-        bBuff.flip();
-        // Reading from the buffer.
-        while (bBuff.hasRemaining()) {
-            msg[index] = bBuff.get();
-            index++;
-        }
-        // Building the raw arguments.
-        String rawArgs = "";
-        for (final byte b : msg) {
-            if ((int) b != 0)
-                rawArgs += (char) b;
-        }
-        // Clearing the buffer, resetting its 'position' to 0 and its 'limit' to its
-        // capacity.
-        bBuff.clear();
-        if (crash)
-            return "crashed";
-        else
-            return rawArgs;
-    }
-
-    /**
-     * Utility function to write a message in a NIO TCP socket.
-     * 
-     * @param msg    the message to write
-     * @param bBuff  the socket associated byte buffer.
-     * @param socket the socket.
-     */
-    private void writeMsg(final String msg, final ByteBuffer bBuff, final SocketChannel socket) {
-        bBuff.put(msg.getBytes());
-        bBuff.flip();
-        try {
-            while (bBuff.hasRemaining()) {
-                socket.write(bBuff);
-            }
-        } catch (final IOException e) {
-            e.printStackTrace();
-        }
-        bBuff.clear();
     }
 }

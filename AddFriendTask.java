@@ -1,4 +1,3 @@
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -16,7 +15,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * friend or is trying to add a user whom he is already friend with or the user
  * he wants to add as a friend is not registered.
  */
-public class AddFriendTask implements Runnable {
+public class AddFriendTask implements TaskInterface {
 
     /* ---------------- Fields -------------- */
 
@@ -64,19 +63,6 @@ public class AddFriendTask implements Runnable {
         this.friend = frnd;
     }
 
-    private void writeMsg(final String msg, final ByteBuffer bBuff, final SocketChannel socket) {
-        bBuff.put(msg.getBytes());
-        bBuff.flip();
-        try {
-            while (bBuff.hasRemaining()) {
-                socket.write(bBuff);
-            }
-        } catch (final IOException e) {
-            e.printStackTrace();
-        }
-        bBuff.clear();
-    }
-
     public void run() {
 
         final SocketChannel clientSocket = (SocketChannel) key.channel();
@@ -91,7 +77,7 @@ public class AddFriendTask implements Runnable {
         // Check if the friend is registered.
         if (!(database.retrieveUser(friend) != null)) {
             msg = "Add friend error: user " + friend + " not found.\n";
-            writeMsg(msg, bBuff, clientSocket);
+            TaskInterface.writeMsg(msg, bBuff, clientSocket);
             key.interestOps(SelectionKey.OP_READ);
             selector.wakeup();
             return;
@@ -105,7 +91,7 @@ public class AddFriendTask implements Runnable {
                 msg = friend + " is now your friend.\n";
             else
                 msg = "Add friend error: you and " + friend + " are already friends.\n";
-            writeMsg(msg, bBuff, clientSocket);
+            TaskInterface.writeMsg(msg, bBuff, clientSocket);
             key.interestOps(SelectionKey.OP_READ);
             selector.wakeup();
             return;

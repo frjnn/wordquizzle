@@ -1,4 +1,3 @@
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -12,7 +11,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * with the contents of the user's friens list which is represented by the field
  * {@code friends} of the class {@link WQUser}.
  */
-public class GetFriendListTask implements Runnable {
+public class GetFriendListTask implements TaskInterface {
 
     /* ---------------- Fields -------------- */
 
@@ -53,26 +52,6 @@ public class GetFriendListTask implements Runnable {
         this.key = selk;
     }
 
-    /**
-     * Utility function to write a message in a NIO TCP socket.
-     * 
-     * @param msg    the message to write
-     * @param bBuff  the socket associated byte buffer.
-     * @param socket the socket.
-     */
-    private void writeMsg(final String msg, final ByteBuffer bBuff, final SocketChannel socket) {
-        bBuff.put(msg.getBytes());
-        bBuff.flip();
-        try {
-            while (bBuff.hasRemaining()) {
-                socket.write(bBuff);
-            }
-        } catch (final IOException e) {
-            e.printStackTrace();
-        }
-        bBuff.clear();
-    }
-
     public void run() {
 
         final SocketChannel clientSocket = (SocketChannel) key.channel();
@@ -92,7 +71,7 @@ public class GetFriendListTask implements Runnable {
             msg += f + " ";
         }
         msg += "\n";
-        writeMsg(msg, bBuff, clientSocket);
+        TaskInterface.writeMsg(msg, bBuff, clientSocket);
         key.interestOps(SelectionKey.OP_READ);
         selector.wakeup();
     }

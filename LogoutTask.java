@@ -21,7 +21,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * the form of a field i.e. {@code brutal} in its costructor. The brutal logout
  * is useful when a user crashes.
  */
-public class LogoutTask implements Runnable {
+public class LogoutTask implements TaskInterface {
 
     /* ---------------- Fields -------------- */
 
@@ -70,26 +70,6 @@ public class LogoutTask implements Runnable {
         this.brutal = brutal;
     }
 
-    /**
-     * Utility function to write a message in a NIO TCP socket.
-     * 
-     * @param msg    the message to write
-     * @param bBuff  the socket associated byte buffer.
-     * @param socket the socket.
-     */
-    private void writeMsg(final String msg, final ByteBuffer bBuff, final SocketChannel socket) {
-        bBuff.put(msg.getBytes());
-        bBuff.flip();
-        try {
-            while (bBuff.hasRemaining()) {
-                socket.write(bBuff);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        bBuff.clear();
-    }
-
     public void run() {
 
         final SocketChannel clientSocket = (SocketChannel) key.channel();
@@ -121,7 +101,7 @@ public class LogoutTask implements Runnable {
         matchBookAddress.remove(nickname);
         System.out.println(nickname + " logged out.\n");
         msg = "Logout successful\n";
-        writeMsg(msg, bBuff, clientSocket);
+        TaskInterface.writeMsg(msg, bBuff, clientSocket);
         try {
             clientSocket.close();
         } catch (IOException ioe) {

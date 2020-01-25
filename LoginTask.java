@@ -1,4 +1,3 @@
-import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -21,7 +20,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * to the client a error if the user is already logged or if the client is
  * trying to request multiple logins.
  */
-public class LoginTask implements Runnable {
+public class LoginTask implements TaskInterface {
 
     /* ---------------- Fields -------------- */
 
@@ -91,26 +90,6 @@ public class LoginTask implements Runnable {
         this.UDP_port = prt;
     }
 
-    /**
-     * Utility function to write a message in a NIO TCP socket.
-     * 
-     * @param msg    the message to write
-     * @param bBuff  the socket associated byte buffer.
-     * @param socket the socket.
-     */
-    private void writeMsg(final String msg, final ByteBuffer bBuff, final SocketChannel socket) {
-        bBuff.put(msg.getBytes());
-        bBuff.flip();
-        try {
-            while (bBuff.hasRemaining()) {
-                socket.write(bBuff);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        bBuff.clear();
-    }
-
     public void run() {
 
         final SocketChannel clientSocket = (SocketChannel) key.channel();
@@ -120,7 +99,7 @@ public class LoginTask implements Runnable {
         // Check if user is registered.
         if (!(database.retrieveUser(nickname) != null)) {
             msg = "Login error: user " + nickname + " not found. Please register.\n";
-            writeMsg(msg, bBuff, clientSocket);
+            TaskInterface.writeMsg(msg, bBuff, clientSocket);
             key.interestOps(SelectionKey.OP_READ);
             selector.wakeup();
             return;
@@ -135,7 +114,7 @@ public class LoginTask implements Runnable {
                     msg = "Login error: " + nickname + " is already logged in.\n";
                 else
                     msg = "Login error: you are already logged with another account.\n";
-                writeMsg(msg, bBuff, clientSocket);
+                TaskInterface.writeMsg(msg, bBuff, clientSocket);
                 key.interestOps(SelectionKey.OP_READ);
                 selector.wakeup();
                 return;
@@ -152,13 +131,13 @@ public class LoginTask implements Runnable {
                     matchAddressBook.put(nickname, socketAddr);
                     System.out.println(nickname + " logged in.\n");
                     msg = "Login successful.\n";
-                    writeMsg(msg, bBuff, clientSocket);
+                    TaskInterface.writeMsg(msg, bBuff, clientSocket);
                     key.interestOps(SelectionKey.OP_READ);
                     selector.wakeup();
                 } else {
                     // If the password doesn't match returns an error message.
                     msg = "Login error: wrong password.\n";
-                    writeMsg(msg, bBuff, clientSocket);
+                    TaskInterface.writeMsg(msg, bBuff, clientSocket);
                     key.interestOps(SelectionKey.OP_READ);
                     selector.wakeup();
                     return;

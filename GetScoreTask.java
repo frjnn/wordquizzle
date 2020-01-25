@@ -10,7 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * the execution of this task the WQServer will return a number corresponding to
  * the user's score represented by the field {@code score} of the class WQUser.
  */
-public class GetScoreTask implements Runnable {
+public class GetScoreTask implements TaskInterface {
 
     /* ---------------- Fields -------------- */
 
@@ -51,26 +51,6 @@ public class GetScoreTask implements Runnable {
         this.key = selk;
     }
 
-    /**
-     * Utility function to write a message in a NIO TCP socket.
-     * 
-     * @param msg    the message to write
-     * @param bBuff  the socket associated byte buffer.
-     * @param socket the socket.
-     */
-    private void writeMsg(final String msg, final ByteBuffer bBuff, final SocketChannel socket) {
-        bBuff.put(msg.getBytes());
-        bBuff.flip();
-        try {
-            while (bBuff.hasRemaining()) {
-                socket.write(bBuff);
-            }
-        } catch (final IOException e) {
-            e.printStackTrace();
-        }
-        bBuff.clear();
-    }
-
     public void run() {
 
         final SocketChannel clientSocket = (SocketChannel) key.channel();
@@ -83,7 +63,7 @@ public class GetScoreTask implements Runnable {
         // Retrieving the score.
         int score = database.retrieveUser(nickname).getScore();
         msg += score + "\n";
-        writeMsg(msg, bBuff, clientSocket);
+        TaskInterface.writeMsg(msg, bBuff, clientSocket);
         key.interestOps(SelectionKey.OP_READ);
         selector.wakeup();
     }

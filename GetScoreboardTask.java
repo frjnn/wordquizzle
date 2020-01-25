@@ -1,4 +1,3 @@
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -14,7 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * string containing all of the user's friends nicknames, each associated with
  * the corresponding friend's score, and the user's nickname and score.
  */
-public class GetScoreboardTask implements Runnable {
+public class GetScoreboardTask implements TaskInterface {
 
     /* ---------------- Fields -------------- */
 
@@ -55,26 +54,6 @@ public class GetScoreboardTask implements Runnable {
         this.key = selk;
     }
 
-    /**
-     * Utility function to write a message in a NIO TCP socket.
-     * 
-     * @param msg    the message to write
-     * @param bBuff  the socket associated byte buffer.
-     * @param socket the socket.
-     */
-    private void writeMsg(final String msg, final ByteBuffer bBuff, final SocketChannel socket) {
-        bBuff.put(msg.getBytes());
-        bBuff.flip();
-        try {
-            while (bBuff.hasRemaining()) {
-                socket.write(bBuff);
-            }
-        } catch (final IOException e) {
-            e.printStackTrace();
-        }
-        bBuff.clear();
-    }
-
     public void run() {
 
         final SocketChannel clientSocket = (SocketChannel) key.channel();
@@ -97,7 +76,7 @@ public class GetScoreboardTask implements Runnable {
             msg += u.getNickname() + " " + u.getScore() + " ";
         }
         msg += "\n";
-        writeMsg(msg, bBuff, clientSocket);
+        TaskInterface.writeMsg(msg, bBuff, clientSocket);
         key.interestOps(SelectionKey.OP_READ);
         selector.wakeup();
     }
