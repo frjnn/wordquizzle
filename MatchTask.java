@@ -139,8 +139,8 @@ public class MatchTask implements Runnable {
 
         String msg;
         // Will be set to false if the mymemory service is not reachable.
-        boolean avaiable = true;
-        // Those booleans are used to temrinate the task if the service is unavaiable.
+        boolean available = true;
+        // Those booleans are used to temrinate the task if the service is unavailable.
         boolean term1 = false;
         boolean term2 = false;
 
@@ -305,12 +305,12 @@ public class MatchTask implements Runnable {
                         try {
                             dictionary = new WQWords(matchWords).requestWords();
                         } catch (final IOException e) {
-                            // If the translation service is not avaiable.
-                            avaiable = false;
+                            // If the translation service is not available.
+                            available = false;
                             // e.printStackTrace();
                         }
                         String[] words;
-                        if (avaiable) {
+                        if (available) {
                             words = dictionary.keySet().toArray(new String[dictionary.size()]);
                         } else {
                             words = null;
@@ -356,8 +356,8 @@ public class MatchTask implements Runnable {
                                                 key.interestOps(0);
                                             } else {
                                                 // It means that the mymemoryAPI is down.
-                                                if (!avaiable) {
-                                                    writeMsg("Sorry, the translation service is unavaiable. Try later."
+                                                if (!available) {
+                                                    writeMsg("Sorry, the translation service is unavailable. Try later."
                                                             + "\n", clientBuff, clientChann);
                                                     if (clientChann.socket().getPort() == challengedPort) {
                                                         term1 = true;
@@ -399,7 +399,7 @@ public class MatchTask implements Runnable {
                             }
                             currentTime = System.currentTimeMillis();
                         }
-                        if (avaiable) {
+                        if (available) {
                             // Computing the scores.
                             int score1 = 0;
                             int score2 = 0;
