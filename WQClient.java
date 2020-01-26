@@ -552,7 +552,7 @@ public class WQClient {
             e.printStackTrace();
         }
 
-        // If no servers have been found exits whit status code 1.
+        // If no servers have been found exits with status code 1.
         if (client.serverAddress == null)
             System.exit(1);
 

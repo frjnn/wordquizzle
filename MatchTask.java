@@ -1,5 +1,4 @@
 import java.io.IOException;
-import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -11,7 +10,6 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -37,7 +35,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * begins. The words are randomly selected from the
  * {@code ItalianDictionary.txt} file and translated. When the match ends the
  * final score of both user is computed and assigned, immediatly after, the
- * WQServer's {@link WQDatabase} instance is serializaed to save the changes.
+ * WQServer's {@link WQDatabase} instance is serialized to save the changes.
  * 
  * <p>
  * If a user correctly translates a word he is assigned 2 points, if he doesn't
