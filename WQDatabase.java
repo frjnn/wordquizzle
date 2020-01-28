@@ -1,12 +1,15 @@
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
-import com.google.gson.*;
 import java.io.*;
 import java.nio.file.Paths;
 import java.nio.file.Files;
 import java.nio.charset.StandardCharsets;
-import com.google.gson.reflect.TypeToken;
-import java.lang.reflect.Type;
+
+import com.fasterxml.jackson.annotation.PropertyAccessor;
+import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * As the class name suggests, this is the {@code WQServer}'s database. The
@@ -125,28 +128,33 @@ public class WQDatabase {
      *                     file.
      */
     protected synchronized String serialize() throws IOException {
-        final Gson gson = new Gson();
-        final String json = gson.toJson(userDB);
+        ObjectMapper mapper = new ObjectMapper().setVisibility(PropertyAccessor.FIELD, Visibility.ANY);
+        String jsonString = "";
+        jsonString = mapper.writeValueAsString(userDB);
         final FileWriter writer = new FileWriter("./Database.json");
-        writer.write(json);
+        writer.write(jsonString);
         writer.close();
-        return json;
+        return jsonString;
     }
 
     /**
      * The deserialization method, called on {@code WQServer} start.
      */
     protected void deserialize() {
-        final Gson gson = new Gson();
-        String json = null;
-        final Type type = new TypeToken<ConcurrentHashMap<String, WQUser>>() {
-        }.getType();
+        ObjectMapper mapper = new ObjectMapper().setVisibility(PropertyAccessor.FIELD, Visibility.ANY);
+        String jsonString = null;
+        ConcurrentHashMap<String, WQUser> deserializedMap = new ConcurrentHashMap<String, WQUser>();
         try {
-            json = new String(Files.readAllBytes(Paths.get("Database.json")), StandardCharsets.UTF_8);
+            jsonString = new String(Files.readAllBytes(Paths.get("Database.json")), StandardCharsets.UTF_8);
         } catch (final IOException e) {
             e.printStackTrace();
         }
-        final ConcurrentHashMap<String, WQUser> deserializedMap = gson.fromJson(json, type);
+        try {
+            deserializedMap = mapper.readValue(jsonString, new TypeReference<ConcurrentHashMap<String, WQUser>>() {
+            });
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        }
         this.userDB = deserializedMap;
     }
 }

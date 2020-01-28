@@ -38,18 +38,18 @@ public class WQClient {
     /**
      * The UDP socket used for accepting match invitations.
      */
-    private DatagramSocket UDPSock;
+    private final DatagramSocket UDPSock;
 
     /**
      * The MatchListener class instance. The class implements the runnable
      * interface, it listens for match invitations.
      */
-    private MatchListener UDPListener;
+    private final MatchListener UDPListener;
 
     /**
      * The thread on which MatchListener's run method is bein executed.
      */
-    private Thread invitationsMonitor;
+    private final Thread invitationsMonitor;
 
     /**
      * The user's nickname logged in on this WQClient instance.
@@ -59,12 +59,12 @@ public class WQClient {
     /**
      * The console used for keyboard input parsing.
      */
-    private Console cons;
+    private final Console cons;
 
     /**
      * The ConcurrentHashMap where the pending challenges are stored.
      */
-    private ConcurrentHashMap<String, DatagramPacket> challengers;
+    private final ConcurrentHashMap<String, DatagramPacket> challengers;
 
     /**
      * This is the constructor for the WQClient class. Returns a new WQClient.
@@ -230,13 +230,13 @@ public class WQClient {
         }
         // Sends a match request to a friend and blocks until the server communicates
         // acception or refusal, then stores the answer in resp.
-        String resp = clientComunicate(TCPSock, "6" + " " + friend);
+        final String resp = clientComunicate(TCPSock, "6" + " " + friend);
         // Splits the answer on the "/" char, if the match is accepted responseWords[1]
         // contains the port of the freshly opened server's side socket.
-        String[] responseWords = resp.split("/");
+        final String[] responseWords = resp.split("/");
         if (responseWords[0].equals(friend + " accepted your match invitation.")) {
             System.out.println(responseWords[0]);
-            Socket challengeSock = new Socket();
+            final Socket challengeSock = new Socket();
             // Connects to the challenge socket.
             challengeSock
                     .connect(new InetSocketAddress(serverAddress.getAddress(), Integer.parseInt(responseWords[1])));
@@ -265,7 +265,7 @@ public class WQClient {
         }
         // If there are, must print them.
         System.out.println("You have received match requests from the following friends:");
-        for (String challenger : challengers.keySet()) {
+        for (final String challenger : challengers.keySet()) {
             System.out.println(challenger);
         }
 
@@ -280,7 +280,7 @@ public class WQClient {
      * @throws InterruptedException if something fishy happens during the
      *                              {@code sleep()}.
      */
-    private void acceptMatch(String friend) throws IOException, InterruptedException {
+    private void acceptMatch(final String friend) throws IOException, InterruptedException {
         // Check if the user is logged.
         if (!TCPSock.isConnected()) {
             System.out.println("You're not logged in.");
@@ -296,24 +296,24 @@ public class WQClient {
         }
         // Gets the ip address and the port of the DatagramSocket of the server
         // using the information contained in the received UDP packet.
-        InetAddress sockAddr = challengers.get(friend).getAddress();
-        int port = challengers.get(friend).getPort();
+        final InetAddress sockAddr = challengers.get(friend).getAddress();
+        final int port = challengers.get(friend).getPort();
 
         byte[] buf = "Y".getBytes();
         // Creates the acceptance datagram and sends it.
-        DatagramPacket acceptance = new DatagramPacket(buf, buf.length, sockAddr, port);
+        final DatagramPacket acceptance = new DatagramPacket(buf, buf.length, sockAddr, port);
         UDPSock.send(acceptance);
-        DatagramPacket response = challengers.get(friend);
-        String challenger = new String(response.getData(), response.getOffset(), response.getLength(),
+        final DatagramPacket response = challengers.get(friend);
+        final String challenger = new String(response.getData(), response.getOffset(), response.getLength(),
                 StandardCharsets.UTF_8);
-        int TCPport = Integer.parseInt(challenger.substring(challenger.indexOf("/") + 1));
+        final int TCPport = Integer.parseInt(challenger.substring(challenger.indexOf("/") + 1));
         // Since the match is been accepted the corresponding match invitation bust be
         // cancelled.
         challengers.remove(friend);
         // Sending the refusal packets to the other pending challengers invitations.
-        for (DatagramPacket refusedFriend : challengers.values()) {
+        for (final DatagramPacket refusedFriend : challengers.values()) {
             buf = "N".getBytes();
-            DatagramPacket refusal = new DatagramPacket(buf, buf.length, refusedFriend.getAddress(),
+            final DatagramPacket refusal = new DatagramPacket(buf, buf.length, refusedFriend.getAddress(),
                     refusedFriend.getPort());
             UDPSock.send(refusal);
         }
@@ -323,7 +323,7 @@ public class WQClient {
         Thread.sleep(2000);
         // Creates and opens up a new socket where the matchLogic communication will
         // take place.
-        Socket challengeSock = new Socket();
+        final Socket challengeSock = new Socket();
         challengeSock.connect(new InetSocketAddress(serverAddress.getAddress(), TCPport));
         matchLogic(challengeSock);
     }
@@ -334,7 +334,7 @@ public class WQClient {
      * 
      * @param sock the TCP socket opened for the match
      */
-    private void matchLogic(Socket sock) {
+    private void matchLogic(final Socket sock) {
         // Where the match logic is implemented.
         String input;
         // If the server comunicates that the translation service is unavaiable.
@@ -488,28 +488,28 @@ public class WQClient {
      *                         {@code receive()}.
      */
     private InetSocketAddress probe() throws SocketException, IOException {
-        DatagramSocket probeSocket = new DatagramSocket();
+        final DatagramSocket probeSocket = new DatagramSocket();
         // If a WQServer doesn't respond back after 5 seconds, consider the concetion
         // attempt failed.
         probeSocket.setSoTimeout(5000);
         // Sending and empty datagram.
-        byte[] msg = ("").getBytes();
-        DatagramPacket probe = new DatagramPacket(msg, msg.length,
+        final byte[] msg = ("").getBytes();
+        final DatagramPacket probe = new DatagramPacket(msg, msg.length,
                 new InetSocketAddress(InetAddress.getByName("255.255.255.255"), 9999));
         probeSocket.send(probe);
-        byte[] response = new byte[128];
+        final byte[] response = new byte[128];
         // Gets the response. The InetAddress is extracted from the UDP packet itself.
-        DatagramPacket responsePacket = new DatagramPacket(response, response.length);
+        final DatagramPacket responsePacket = new DatagramPacket(response, response.length);
         try {
             probeSocket.receive(responsePacket);
-        } catch (SocketTimeoutException e) {
+        } catch (final SocketTimeoutException e) {
             System.out.println("No WQServer found.");
             probeSocket.close();
             return null;
         }
-        String contentString = new String(responsePacket.getData(), responsePacket.getOffset(),
+        final String contentString = new String(responsePacket.getData(), responsePacket.getOffset(),
                 responsePacket.getLength(), StandardCharsets.UTF_8);
-        InetSocketAddress serverAddress = new InetSocketAddress(responsePacket.getAddress(),
+        final InetSocketAddress serverAddress = new InetSocketAddress(responsePacket.getAddress(),
                 Integer.valueOf(contentString));
         probeSocket.close();
         return serverAddress;
@@ -548,7 +548,7 @@ public class WQClient {
         try {
             // Probes the WQServer's InetSocketAddress from the LAN.
             client.serverAddress = client.probe();
-        } catch (IOException e) {
+        } catch (final IOException e) {
             e.printStackTrace();
         }
 
@@ -599,34 +599,35 @@ class MatchListener implements Runnable {
      *                    invitations
      * @param challengers the HashMap all pending invitations are put
      */
-    MatchListener(DatagramSocket sock, ConcurrentHashMap<String, DatagramPacket> map) throws SocketException {
+    MatchListener(final DatagramSocket sock, final ConcurrentHashMap<String, DatagramPacket> map)
+            throws SocketException {
         UDPSocket = sock;
         challengers = map;
     }
 
     public void run() {
         while (true) {
-            byte[] buf = new byte[512];
-            DatagramPacket response = new DatagramPacket(buf, buf.length);
+            final byte[] buf = new byte[512];
+            final DatagramPacket response = new DatagramPacket(buf, buf.length);
             try {
                 // Receives match invitations.
                 UDPSocket.receive(response);
                 System.out.println("You have a notification:");
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 e.printStackTrace();
             }
             // Extract the content from the packet.
-            String contentString = new String(response.getData(), response.getOffset(), response.getLength(),
+            final String contentString = new String(response.getData(), response.getOffset(), response.getLength(),
                     StandardCharsets.UTF_8);
             // If the invitation timed out it removes the corresponding match invitation
             // from challenger.
             if (contentString.substring(0, contentString.indexOf("/")).equals("TIMEOUT")) {
-                String timedOutChallenger = contentString.substring(contentString.indexOf("/") + 1);
+                final String timedOutChallenger = contentString.substring(contentString.indexOf("/") + 1);
                 challengers.remove(timedOutChallenger);
                 System.out.println(timedOutChallenger + "'s match request timed out.");
                 continue;
             }
-            String challenger = contentString.substring(0, contentString.indexOf("/"));
+            final String challenger = contentString.substring(0, contentString.indexOf("/"));
             System.out.println("Received a challenge from: " + challenger);
             System.out.print("> ");
             // Puts the challenger in the pending list.

@@ -2,16 +2,14 @@ import java.util.HashMap;
 import java.util.ArrayList;
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.io.FileReader;
 import java.util.Random;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * The WQWord class implements the random retrieval of the specified number of
@@ -65,22 +63,16 @@ public class WQWords {
         // The GET request.
         String HTTPrequest = "https://api.mymemory.translated.net/get?q=" + word.replace(" ", "%20")
                 + "&langpair=it|en";
-        URL mymemoryAPI = new URL(HTTPrequest);
-        InputStream stream = mymemoryAPI.openStream();
-        BufferedReader buff = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8));
-        String inputLine;
-        StringBuffer content = new StringBuffer();
-        while ((inputLine = buff.readLine()) != null) {
-            content.append(inputLine);
-        }
-        // Json parsing.
-        JsonElement jelement = JsonParser.parseString(content.toString());
-        JsonObject jobject = jelement.getAsJsonObject();
-        JsonArray jarray = jobject.get("matches").getAsJsonArray();
-        for (int i = 0; i < jarray.size(); i++) {
-            JsonObject translated = (JsonObject) jarray.get(i);
-            String translation = translated.get("translation").getAsString();
-            translations.add(translation.toLowerCase().replaceAll("[^a-zA-Z0-9\\u0020]", ""));
+        JsonFactory jfactory = new JsonFactory();
+        JsonParser jParser = jfactory.createParser(new URL(HTTPrequest));
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode input = mapper.readTree(jParser);
+        final JsonNode results = input.get("matches");
+        // loop until token equal to "}"
+        for (final JsonNode element : results) {
+            JsonNode fieldname = element.get("translation");
+            translations.add(fieldname.toString().toLowerCase().replaceAll("[^a-zA-Z0\\u0020]", "")
+                    .replaceAll("[0123456789]", ""));
         }
         return translations;
     }
@@ -111,20 +103,5 @@ public class WQWords {
             words.put(word, translations);
         }
         return words;
-    }
-
-    /**
-     * Where the class logic happens.
-     * 
-     * @param args main args.
-     * @throws IOException if something strange happens.
-     */
-    public static void main(String[] args) throws IOException {
-        WQWords words = new WQWords(5);
-        HashMap<String, ArrayList<String>> selectedWords = words.requestWords();
-        for (ArrayList<String> translations : selectedWords.values()) {
-            System.out.println(translations);
-        }
-        System.exit(0);
     }
 }

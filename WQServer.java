@@ -53,6 +53,10 @@ import java.util.concurrent.TimeUnit;
  * <p>
  * WQServer provides an highly scalable architecture by combining an iterative
  * task dispatching with a concurrent task execution.
+ * 
+ * <p>
+ * WQServer is able to operate with both command line WQClients and graphic user
+ * interface client simultaneously.
  */
 public class WQServer extends UnicastRemoteObject implements WQRegistrationRMI {
 
@@ -163,8 +167,8 @@ public class WQServer extends UnicastRemoteObject implements WQRegistrationRMI {
      * @param thr        the maxPoolSize of the ThreadPoolExecutor.
      * @throws RemoteException could be be thrown, WQServer is a remote object.
      */
-    public WQServer(final int port, int probe, final int length, final int invitation, final int words, final int thr)
-            throws RemoteException {
+    public WQServer(final int port, final int probe, final int length, final int invitation, final int words,
+            final int thr) throws RemoteException {
         super();
         this.database = new WQDatabase();
         this.threads = thr;
@@ -231,12 +235,12 @@ public class WQServer extends UnicastRemoteObject implements WQRegistrationRMI {
         }
 
         // Parsing main args.
-        int tcp_port = Integer.parseInt(args[0]);
-        int udp_port = Integer.parseInt(args[1]);
-        int match_timer = Integer.parseInt(args[2]);
-        int invitation_timer = Integer.parseInt(args[3]);
-        int num_words = Integer.parseInt(args[4]);
-        int threads = Integer.parseInt(args[5]);
+        final int tcp_port = Integer.parseInt(args[0]);
+        final int udp_port = Integer.parseInt(args[1]);
+        final int match_timer = Integer.parseInt(args[2]);
+        final int invitation_timer = Integer.parseInt(args[3]);
+        final int num_words = Integer.parseInt(args[4]);
+        final int threads = Integer.parseInt(args[5]);
 
         if (tcp_port <= 1024 || udp_port <= 1024) {
             System.out.println("Please use ephemeral port numbers.");
@@ -329,13 +333,15 @@ public class WQServer extends UnicastRemoteObject implements WQRegistrationRMI {
                                     // If it's a DatagramChannel must respond to the probe wih the server's tcp
                                     // socket port.
                                     final DatagramChannel wqProbeChannel = (DatagramChannel) key.channel();
-                                    ByteBuffer probeBuffer = ByteBuffer.allocate(28); // The dimension of an empty UDP
-                                                                                      // datagram.
-                                    SocketAddress probeAddress = wqProbeChannel.receive(probeBuffer);
-                                    String msg = String.valueOf(server.TCP_port);
+                                    final ByteBuffer probeBuffer = ByteBuffer.allocate(28); // The dimension of an empty
+                                                                                            // UDP
+                                    // datagram.
+                                    final SocketAddress probeAddress = wqProbeChannel.receive(probeBuffer);
+                                    final String msg = String.valueOf(server.TCP_port);
                                     try {
-                                        int n = wqProbeChannel.send(ByteBuffer.wrap(msg.getBytes()), probeAddress);
-                                    } catch (IOException e) {
+                                        final int n = wqProbeChannel.send(ByteBuffer.wrap(msg.getBytes()),
+                                                probeAddress);
+                                    } catch (final IOException e) {
                                         e.printStackTrace();
                                     }
                                 } else {
@@ -349,7 +355,7 @@ public class WQServer extends UnicastRemoteObject implements WQRegistrationRMI {
                                     // will be read from it.
                                     boolean crash = false;
 
-                                    SocketChannel wqClient = (SocketChannel) key.channel();
+                                    final SocketChannel wqClient = (SocketChannel) key.channel();
                                     final ByteBuffer bBuff = (ByteBuffer) key.attachment();
                                     final byte[] msg = new byte[128];
                                     int index = 0;

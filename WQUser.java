@@ -1,5 +1,8 @@
 import java.util.ArrayList;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 /**
  * The WQUser class models a user and implements the comparable interface,
  * sorting the users is necessary to build the scoreboard. See the
@@ -27,7 +30,7 @@ public class WQUser implements Comparable<WQUser> {
     /**
      * The user's friends.
      */
-    private final ArrayList<String> friends = new ArrayList<String>();
+    private final ArrayList<String> friends;
 
     /**
      * Returns a new WQUser.
@@ -39,6 +42,25 @@ public class WQUser implements Comparable<WQUser> {
         this.nickname = nickname;
         this.pwdHash = pwdHash;
         this.score = 0;
+        this.friends = new ArrayList<String>();
+    }
+
+    /**
+     * This is the default constructor used by Jackson to deserialize the WQServer's
+     * {@code database}.
+     * 
+     * @param nickname the nickname of the user.
+     * @param pwdHash  the password hash of the user.
+     * @param score    the score of the user.
+     * @param friends  the friends of the user.
+     */
+    @JsonCreator
+    public WQUser(@JsonProperty("nickname") final String nickname, @JsonProperty("pwdHash") final int pwdHash,
+            @JsonProperty("score") final int score, @JsonProperty("friends") final ArrayList<String> friends) {
+        this.nickname = nickname;
+        this.pwdHash = pwdHash;
+        this.score = score;
+        this.friends = friends;
     }
 
     /**
