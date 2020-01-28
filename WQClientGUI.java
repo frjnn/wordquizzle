@@ -15,6 +15,7 @@ import java.net.InetSocketAddress;
 import java.net.DatagramSocket;
 import java.net.DatagramPacket;
 import java.util.concurrent.ConcurrentHashMap;
+
 import java.nio.charset.StandardCharsets;
 
 import javax.swing.*;
@@ -69,7 +70,7 @@ public class WQClientGUI {
     /**
      * The client's graphic user interface.
      */
-    private Frame gui;
+    private JFrame gui;
 
     /**
      * This is the constructor for the WQClientGUI class. Returns a new WQClientGUI.
@@ -360,36 +361,42 @@ public class WQClientGUI {
      * 
      * @return the newly created main frame.
      */
-    private Frame setMainFrame() {
+    private JFrame setMainFrame() {
         // Creating frame.
-        final Frame mainFrame = new Frame("Word Quizzle");
+        final JFrame mainFrame = new JFrame("Word Quizzle");
         mainFrame.setSize(500, 300);
         mainFrame.setVisible(false);
         mainFrame.setResizable(false);
         mainFrame.setLayout(null);
         // Setting frame components.
-        final Label matchHubLabel = new Label("Match Hub");
-        final Label scoreBoardLabel = new Label("Score Board");
-        final Label socialHubLabel = new Label("Social Hub");
-        final Label addFriendLabel = new Label("Add friend:");
-        final TextField username = new TextField();
-        final Button scoreButton = new Button("Score");
-        final Button scoreBoardButton = new Button("Scoreboard");
-        final Button logoutButton = new Button("Logout");
-        final Button addFriendButton = new Button("Add");
-        final Button friendListButton = new Button("Friend List");
-        final Button matchButton = new Button("Match");
+        final JLabel matchHubLabel = new JLabel("Match Hub");
+        final JLabel scoreBoardLabel = new JLabel("Score Board");
+        final JLabel socialHubLabel = new JLabel("Social Hub");
+        final JLabel addFriendLabel = new JLabel("Add friend:");
+        final JTextField username = new JTextField();
+        final JButton scoreButton = new JButton("Score");
+        final JButton scoreBoardButton = new JButton("Scoreboard");
+        final JButton logoutButton = new JButton("Logout");
+        final JButton addFriendButton = new JButton("Add");
+        final JButton friendListButton = new JButton("Friend List");
+        final JButton matchButton = new JButton("Match");
+        scoreButton.setFont(new Font("Arial", Font.PLAIN, 10));
+        scoreBoardButton.setFont(new Font("Arial", Font.PLAIN, 10));
+        logoutButton.setFont(new Font("Arial", Font.PLAIN, 10));
+        addFriendButton.setFont(new Font("Arial", Font.PLAIN, 10));
+        friendListButton.setFont(new Font("Arial", Font.PLAIN, 10));
+        matchButton.setFont(new Font("Arial", Font.PLAIN, 10));
         // Placing components.
-        matchHubLabel.setBounds(85, 40, 100, 20);
-        scoreBoardLabel.setBounds(25, 110, 100, 20);
-        socialHubLabel.setBounds(335, 40, 100, 20);
-        addFriendLabel.setBounds(290, 70, 100, 20);
-        username.setBounds(290, 100, 170, 20);
-        scoreButton.setBounds(25, 60, 200, 30);
-        scoreBoardButton.setBounds(25, 100, 200, 30);
-        logoutButton.setBounds(200, 260, 100, 20);
-        addFriendButton.setBounds(275, 130, 90, 20);
-        friendListButton.setBounds(385, 130, 90, 20);
+        matchHubLabel.setBounds(85, 0, 100, 20);
+        scoreBoardLabel.setBounds(25, 70, 100, 20);
+        socialHubLabel.setBounds(335, 0, 100, 20);
+        addFriendLabel.setBounds(290, 30, 100, 20);
+        username.setBounds(290, 60, 170, 20);
+        scoreButton.setBounds(25, 20, 200, 30);
+        scoreBoardButton.setBounds(25, 60, 200, 30);
+        logoutButton.setBounds(200, 220, 100, 20);
+        addFriendButton.setBounds(275, 90, 90, 20);
+        friendListButton.setBounds(385, 90, 90, 20);
         // Adding componenets to the frame.
         mainFrame.add(username);
         mainFrame.add(addFriendLabel);
@@ -400,11 +407,16 @@ public class WQClientGUI {
         mainFrame.add(logoutButton);
         mainFrame.add(addFriendButton);
         mainFrame.add(friendListButton);
+        mainFrame.add(matchButton);
         // Initializing the friend list and the scoreboard list.
-        final List friendList = new List();
-        final List scoreBoard = new List();
+        final DefaultListModel<String> friendListModel = new DefaultListModel<String>();
+        final JList<String> friendList = new JList<String>(friendListModel);
+        final DefaultListModel<String> scoreBoardListModel = new DefaultListModel<String>();
+        final JList<String> scoreBoard = new JList<String>(scoreBoardListModel);
         scoreBoard.setVisible(false);
         friendList.setVisible(false);
+        mainFrame.add(friendList);
+        mainFrame.add(scoreBoard);
 
         // Enables the top right button "X".
         mainFrame.addWindowListener(new WindowAdapter() {
@@ -453,33 +465,36 @@ public class WQClientGUI {
         // Friend list button action listener.
         friendListButton.addActionListener(e -> {
             if (!friendList.isVisible()) {
-                friendList.setLocation(275, 70);
+                friendList.setLocation(275, 30);
                 friendList.setSize(200, 110);
                 mainFrame.remove(addFriendLabel);
                 mainFrame.remove(username);
                 mainFrame.remove(addFriendButton);
                 final String response = friend_list();
-                String refine = response.replace("Your friends are:", "");
-                final String[] friends = refine.split(" ");
-                for (final String s : friends) {
-                    if (!s.equals(""))
-                        friendList.add(s);
+                if (!response.equals("You currently have no friends, add some!")) {
+                    String refine = response.replace("Your friends are:", "");
+                    final String[] friends = refine.split(" ");
+                    for (final String s : friends) {
+                        if (!s.equals(""))
+                            friendListModel.addElement(s);
+                    }
                 }
                 socialHubLabel.setText("Friend List");
                 friendList.setVisible(true);
                 friendList.setEnabled(false);
-                mainFrame.add(friendList);
-                friendListButton.setLabel("Close");
-                friendListButton.setBounds(325, 190, 100, 20);
+                friendListButton.setText("Close");
+                friendListButton.setBounds(325, 150, 100, 20);
             } else {
                 friendList.setVisible(false);
-                friendList.removeAll();
-                mainFrame.remove(friendList);
+                friendListModel.clear();
+                friendList.setVisible(false);
                 mainFrame.add(addFriendLabel);
                 mainFrame.add(username);
                 mainFrame.add(addFriendButton);
-                friendListButton.setBounds(385, 130, 90, 20);
-                friendListButton.setLabel("Friend List");
+                friendListButton.setVisible(false);
+                friendListButton.setLocation(385, 90);
+                friendListButton.setVisible(true);
+                friendListButton.setText("Friend List");
                 socialHubLabel.setText("Social Hub");
             }
         });
@@ -493,29 +508,28 @@ public class WQClientGUI {
         // Score board button action listener.
         scoreBoardButton.addActionListener(e -> {
             if (!scoreBoard.isVisible()) {
-                scoreBoard.setLocation(25, 100);
+                scoreBoard.setLocation(25, 60);
                 scoreBoard.setSize(200, 110);
-                scoreBoardButton.setBounds(20, 220, 100, 20);
-                mainFrame.add(matchButton);
-                matchButton.setBounds(130, 220, 100, 20);
+                scoreBoardButton.setBounds(20, 180, 100, 20);
+                matchButton.setBounds(130, 180, 100, 20);
+                matchButton.setVisible(true);
                 final String response = scoreboard();
                 final String[] friends = response.split(" ");
                 int i = 1;
                 for (int j = 0; j < friends.length - 1; j += 2) {
                     if (!friends[j].equals(""))
-                        scoreBoard.add(i + ". " + friends[j] + " " + friends[j + 1]);
+                        scoreBoardListModel.addElement(i + ". " + friends[j] + " " + friends[j + 1]);
                     i++;
                 }
                 scoreBoard.setVisible(true);
-                mainFrame.add(scoreBoard);
-                scoreBoardButton.setLabel("Close");
+                scoreBoardButton.setText("Close");
             } else {
                 scoreBoard.setVisible(false);
-                scoreBoard.removeAll();
-                mainFrame.remove(scoreBoard);
-                scoreBoardButton.setBounds(25, 100, 200, 30);
-                scoreBoardButton.setLabel("Scoreboard");
-                mainFrame.remove(matchButton);
+                scoreBoardListModel.clear();
+                scoreBoard.setVisible(false);
+                scoreBoardButton.setBounds(25, 60, 200, 30);
+                scoreBoardButton.setText("Scoreboard");
+                matchButton.setVisible(false);
             }
         });
 
@@ -523,17 +537,17 @@ public class WQClientGUI {
         matchButton.addActionListener(e -> {
             int index = scoreBoard.getSelectedIndex();
             if (index != -1) {
-                final String selected = scoreBoard.getItem(index);
+                final String selected = scoreBoard.getSelectedValue();
                 final String[] args = selected.split(" ");
                 final String nick = args[1];
                 String response = null;
                 if (selected != null) {
                     scoreBoard.setVisible(false);
-                    scoreBoard.removeAll();
-                    mainFrame.remove(scoreBoard);
-                    scoreBoardButton.setBounds(25, 100, 200, 30);
-                    scoreBoardButton.setLabel("Scoreboard");
-                    mainFrame.remove(matchButton);
+                    scoreBoardListModel.clear();
+                    scoreBoard.setVisible(false);
+                    scoreBoardButton.setBounds(25, 60, 200, 30);
+                    scoreBoardButton.setText("Scoreboard");
+                    matchButton.setVisible(false);
                     if (challengers.containsKey(nick)) {
                         try {
                             acceptMatch(nick);
@@ -561,31 +575,35 @@ public class WQClientGUI {
      */
     private void setLoginFrame() {
         // Creates the frame.
-        final Frame login = new Frame("Word Quizzle - Login");
+        final JFrame login = new JFrame("Word Quizzle - Login");
         // Sets the frame size.
         login.setSize(420, 200);
         login.setLocation(400, 175);
         login.setResizable(false);
         login.setLayout(null);
         // Creation of the frame components.
-        final Label usr = new Label("Username:");
-        final Label psw = new Label("Password:");
-        final Button ok = new Button("OK");
-        final Button register = new Button("Register");
-        final Button exit = new Button("Exit");
-        final TextField username = new TextField();
-        final TextField password = new TextField("");
+        final JLabel usr = new JLabel("Username:");
+        final JLabel psw = new JLabel("Password:");
+        final JButton ok = new JButton("OK");
+        final JButton register = new JButton("Register");
+        final JButton exit = new JButton("Exit");
+        // Setting buttons font.
+        ok.setFont(new Font("Arial", Font.PLAIN, 10));
+        register.setFont(new Font("Arial", Font.PLAIN, 10));
+        exit.setFont(new Font("Arial", Font.PLAIN, 10));
+        final JTextField username = new JTextField();
+        final JPasswordField password = new JPasswordField("");
         password.setEchoChar('*');
-        final Checkbox hidePw = new Checkbox("Show password", Boolean.FALSE);
+        final JCheckBox hidePw = new JCheckBox("Show password", Boolean.FALSE);
         // Setting components position.
-        usr.setBounds(35, 70, 130, 20);
-        psw.setBounds(35, 110, 130, 20);
-        ok.setBounds(35, 170, 75, 20);
-        register.setBounds(172, 170, 75, 20);
-        exit.setBounds(310, 170, 75, 20);
-        username.setBounds(172, 70, 170, 20);
-        password.setBounds(172, 110, 170, 20);
-        hidePw.setBounds(172, 130, 200, 30);
+        usr.setBounds(35, 30, 130, 20);
+        psw.setBounds(35, 70, 130, 20);
+        ok.setBounds(35, 130, 75, 20);
+        register.setBounds(172, 130, 75, 20);
+        exit.setBounds(310, 130, 75, 20);
+        username.setBounds(172, 30, 170, 20);
+        password.setBounds(172, 70, 170, 20);
+        hidePw.setBounds(172, 90, 200, 30);
         // Adding components to frame.
         login.add(usr);
         login.add(psw);
@@ -618,10 +636,10 @@ public class WQClientGUI {
 
         // Listener for the ok button.
         ok.addActionListener(e -> {
-            if ((!username.getText().isEmpty() && !password.getText().isEmpty())) {
+            if ((!username.getText().isEmpty() && !(password.getPassword().length == 0))) {
                 String response = null;
                 try {
-                    response = login(username.getText(), password.getText());
+                    response = login(username.getText(), new String(password.getPassword()));
                 } catch (final Exception ex) {
                     ex.printStackTrace();
                 }
@@ -658,9 +676,9 @@ public class WQClientGUI {
      * 
      * @param login The login frame.
      */
-    private void setRegistrationFrame(final Frame login) {
+    private void setRegistrationFrame(final JFrame login) {
         // Frame creation.
-        final Frame registrationFrame = new Frame("Word Quizzle - Registration");
+        final JFrame registrationFrame = new JFrame("Word Quizzle - Registration");
         // Setting the frame size and location. Here is used the login frame location.
         registrationFrame.setSize(420, 200);
         registrationFrame.setLocation(login.getLocation());
@@ -668,22 +686,24 @@ public class WQClientGUI {
         registrationFrame.setResizable(Boolean.FALSE);
         registrationFrame.setLayout(null);
         // Creation of the frame components.
-        final Label username = new Label("Username");
-        final Label psw = new Label("Password");
-        final Button register = new Button("Register");
-        final Button cancel = new Button("Cancel");
-        final TextField nickname = new TextField();
-        final TextField password = new TextField();
+        final JLabel username = new JLabel("Username");
+        final JLabel psw = new JLabel("Password");
+        final JButton register = new JButton("Register");
+        final JButton cancel = new JButton("Cancel");
+        register.setFont(new Font("Arial", Font.PLAIN, 10));
+        cancel.setFont(new Font("Arial", Font.PLAIN, 10));
+        final JTextField nickname = new JTextField();
+        final JPasswordField password = new JPasswordField("");
         password.setEchoChar('*');
-        final Checkbox hidePw = new Checkbox("Show password", Boolean.FALSE);
+        final JCheckBox hidePw = new JCheckBox("Show password", Boolean.FALSE);
         // Setting componenets position.
-        username.setBounds(35, 70, 130, 20);
-        psw.setBounds(35, 110, 130, 20);
-        register.setBounds(35, 170, 95, 20);
-        cancel.setBounds(290, 170, 95, 20);
-        nickname.setBounds(172, 70, 170, 20);
-        password.setBounds(172, 110, 170, 20);
-        hidePw.setBounds(172, 130, 200, 30);
+        username.setBounds(35, 30, 130, 20);
+        psw.setBounds(35, 70, 130, 20);
+        register.setBounds(35, 130, 95, 20);
+        cancel.setBounds(290, 130, 95, 20);
+        nickname.setBounds(172, 30, 170, 20);
+        password.setBounds(172, 70, 170, 20);
+        hidePw.setBounds(172, 90, 200, 30);
         // Adding the components to the frame.
         registrationFrame.add(username);
         registrationFrame.add(psw);
@@ -716,10 +736,10 @@ public class WQClientGUI {
 
         // Register button listener.
         register.addActionListener(e -> {
-            if (!nickname.getText().isEmpty() && !password.getText().isEmpty()) {
+            if (!nickname.getText().isEmpty() && !(password.getPassword().length == 0)) {
                 String esito = null;
                 try {
-                    esito = registration(nickname.getText(), password.getText());
+                    esito = registration(nickname.getText(), new String(password.getPassword()));
                 } catch (final Exception ex) {
                     ex.printStackTrace();
                 }
@@ -755,7 +775,7 @@ public class WQClientGUI {
         // Disables the main frame when the match starts.
         gui.setEnabled(false);
         // Frame creation.
-        final Frame challengeFrame = new Frame("Match");
+        final JFrame challengeFrame = new JFrame("Match");
         // Setting frame size.
         challengeFrame.setSize(200, 200);
         challengeFrame.setLocation(gui.getLocation());
@@ -765,13 +785,14 @@ public class WQClientGUI {
         challengeFrame.setResizable(Boolean.FALSE);
         challengeFrame.setLayout(null);
         // Creation of the frame components.
-        Label word = new Label();
-        Button submitButton = new Button("Submit");
+        JLabel word = new JLabel();
+        JButton submitButton = new JButton("Submit");
+        submitButton.setFont(new Font("Arial", Font.PLAIN, 10));
         TextField insert = new TextField();
         // Adding the components to the frame.
-        word.setBounds(35, 70, 130, 20);
-        insert.setBounds(35, 110, 130, 20);
-        submitButton.setBounds(35, 170, 95, 20);
+        word.setBounds(35, 30, 130, 20);
+        insert.setBounds(35, 70, 130, 20);
+        submitButton.setBounds(35, 130, 95, 20);
         challengeFrame.add(word);
         challengeFrame.add(insert);
         challengeFrame.add(submitButton);
@@ -840,6 +861,7 @@ public class WQClientGUI {
         // If no servers have been found exits with status code 1.
         if (client.serverAddress == null)
             System.exit(1);
+
         // Sets the initial gui's frame.
         client.setLoginFrame();
     }
@@ -853,7 +875,7 @@ class MatchListener implements Runnable {
 
     DatagramSocket UDPSocket;
     ConcurrentHashMap<String, DatagramPacket> challengers;
-    Frame mainFrame;
+    JFrame mainFrame;
 
     /**
      * The constructor to MatchListener.
@@ -863,7 +885,7 @@ class MatchListener implements Runnable {
      * @param challengers the HashMap all pending invitations are put
      * @param main        the mainFrame of the gui.
      */
-    MatchListener(final DatagramSocket sock, final ConcurrentHashMap<String, DatagramPacket> map, final Frame main)
+    MatchListener(final DatagramSocket sock, final ConcurrentHashMap<String, DatagramPacket> map, final JFrame main)
             throws SocketException {
         UDPSocket = sock;
         challengers = map;
