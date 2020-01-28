@@ -460,10 +460,12 @@ public class WQClientGUI {
                 mainFrame.remove(addFriendButton);
                 final String response = friend_list();
                 String[] refine = response.split("are:");
-                final String[] friends = refine[1].split(" ");
-                for (final String s : friends) {
-                    if (!s.equals(""))
-                        friendList.add(s);
+                if (refine.length > 2) {
+                    final String[] friends = refine[1].split(" ");
+                    for (final String s : friends) {
+                        if (!s.equals(""))
+                            friendList.add(s);
+                    }
                 }
                 socialHubLabel.setText("Friend List");
                 friendList.setVisible(true);
