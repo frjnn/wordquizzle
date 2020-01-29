@@ -4,8 +4,10 @@ import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
 import java.net.SocketTimeoutException;
 import java.nio.ByteBuffer;
+import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  * The TaskInterface provides utility methods for all the tasks.
@@ -49,18 +51,18 @@ public interface TaskInterface extends Runnable {
     /**
      * Utility function to read a message from a NIO socket.
      * 
-     * @param wqClient the socket.
-     * @param bBuff    the socket associated byte buffer.
+     * @param qClient the socket.
+     * @param bBuff   the socket associated byte buffer.
      * @return the message red.
      */
-    public static String readMsg(final SocketChannel wqClient, final ByteBuffer bBuff) {
+    public static String readMsg(final SocketChannel qClient, final ByteBuffer bBuff) {
         final byte[] msg = new byte[128];
         int index = 0;
         int k;
         boolean crash = false;
         // Reading the socket.
         try {
-            while ((k = wqClient.read(bBuff)) != 0 && !crash) {
+            while ((k = qClient.read(bBuff)) != 0 && !crash) {
                 // Client unexpectedly closed the connection.
                 if (k == -1) {
                     crash = true;
@@ -89,6 +91,19 @@ public interface TaskInterface extends Runnable {
             return "crashed";
         else
             return rawArgs;
+    }
+
+    /**
+     * Utility function to insert a mail in the QuizzleServer's post depot.
+     * 
+     * @param postDepot the post depot.
+     * @param selK      the selection key, it can be seen as the address to deliver
+     *                  the message to.
+     * @param message   the message.
+     */
+    public static void insertMail(LinkedBlockingQueue<QuizzleMail> postDepot, SelectionKey selK, String message) {
+        QuizzleMail mail = new QuizzleMail(selK, message);
+        postDepot.offer(mail);
     }
 
     /**

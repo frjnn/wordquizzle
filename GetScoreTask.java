@@ -1,32 +1,32 @@
-import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  * The class GetScoreTask implements the retrieval by a user of his score. Upon
- * the execution of this task the WQServer will return a number corresponding to
- * the user's score represented by the field {@code score} of the class WQUser.
+ * the execution of this task the QuizzleServer will return a number
+ * corresponding to the user's score represented by the field {@code score} of
+ * the class QuizzleUser.
  */
 public class GetScoreTask implements TaskInterface {
 
     /* ---------------- Fields -------------- */
 
     /**
-     * The database of the WQServer.
+     * The database of the QuizzleServer.
      */
-    private final WQDatabase database;
+    private final QuizzleDatabase database;
 
     /**
-     * The onlineUsers of the WQServer.
+     * The onlineUsers of the QuizzleServer.
      */
     private final ConcurrentHashMap<Integer, String> onlineUsers;
 
     /**
-     * The Selector of the code WQServer.
+     * The post depot of the code QuizzleServer.
      */
-    private final Selector selector;
+    private final LinkedBlockingQueue<QuizzleMail> depot;
 
     /**
      * The SelectionKey with attached the Socket upon which to perform the get score
@@ -39,22 +39,19 @@ public class GetScoreTask implements TaskInterface {
      * 
      * @param datab   the database.
      * @param onlineu the list of online users.
-     * @param sel     the selector.
+     * @param queue   the post depot.
      * @param selk    the selection key of interest.
      */
-    public GetScoreTask(final WQDatabase datab, final ConcurrentHashMap<Integer, String> onlineu, final Selector sel,
-            final SelectionKey selk) {
+    public GetScoreTask(final QuizzleDatabase datab, final ConcurrentHashMap<Integer, String> onlineu,
+            final LinkedBlockingQueue<QuizzleMail> queue, final SelectionKey selk) {
         this.database = datab;
         this.onlineUsers = onlineu;
-        this.selector = sel;
+        this.depot = queue;
         this.key = selk;
     }
 
     public void run() {
-
         final SocketChannel clientSocket = (SocketChannel) key.channel();
-        final ByteBuffer bBuff = (ByteBuffer) key.attachment();
-
         // Retrieve the nickname form the port number.
         final int clientPort = clientSocket.socket().getPort();
         final String nickname = onlineUsers.get(clientPort);
@@ -62,8 +59,6 @@ public class GetScoreTask implements TaskInterface {
         // Retrieving the score.
         int score = database.retrieveUser(nickname).getScore();
         msg += score + "\n";
-        TaskInterface.writeMsg(msg, bBuff, clientSocket);
-        key.interestOps(SelectionKey.OP_READ);
-        selector.wakeup();
+        TaskInterface.insertMail(depot, key, msg);
     }
 }

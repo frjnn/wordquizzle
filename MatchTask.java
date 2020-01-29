@@ -18,7 +18,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * The MatchTask class implements the match between two users. The
- * implementation is the following: when the {@link WQServer} executes a
+ * implementation is the following: when the {@link QuizzleServer} executes a
  * MatchTask it means that a user challenged one of his friends. After
  * performing all the operation's legality checks of the case, such as returning
  * an error message if the user is trying to match himslef or an offline friend,
@@ -30,12 +30,13 @@ import java.util.concurrent.ConcurrentHashMap;
  * implemented by setting a timeout on the {@code invSocket}, which is the
  * socket used by the task to send the match invitation and then receive the
  * response. If the challenged user accept, the match port is communicated to
- * the challengig user via its main TCP connection with the WQServer. MatchTask
- * then waits for both users to join the match. When both users join the match
- * begins. The words are randomly selected from the
+ * the challengig user via its main TCP connection with the QuizzleServer.
+ * MatchTask then waits for both users to join the match. When both users join
+ * the match begins. The words are randomly selected from the
  * {@code ItalianDictionary.txt} file and translated. When the match ends the
  * final score of both user is computed and assigned, immediatly after, the
- * WQServer's {@link WQDatabase} instance is serialized to save the changes.
+ * QuizzleServer's {@link QuizzleDatabase} instance is serialized to save the
+ * changes.
  * 
  * <p>
  * If a user correctly translates a word he is assigned 2 points, if he doesn't
@@ -54,22 +55,22 @@ public class MatchTask implements TaskInterface {
     /* ---------------- Fields -------------- */
 
     /**
-     * The database of the WQServer.
+     * The database of the QuizzleServer.
      */
-    private final WQDatabase database;
+    private final QuizzleDatabase database;
 
     /**
-     * The onlineUsers of the WQServer.
+     * The onlineUsers of the QuizzleServer.
      */
     private final ConcurrentHashMap<Integer, String> onlineUsers;
 
     /**
-     * The matchBookAddress of the WQServer.
+     * The matchBookAddress of the QuizzleServer.
      */
     private final ConcurrentHashMap<String, InetSocketAddress> matchBookAddress;
 
     /**
-     * The Selector of the code WQServer.
+     * The Selector of the code QuizzleServer.
      */
     private final Selector selector;
 
@@ -116,7 +117,7 @@ public class MatchTask implements TaskInterface {
      * @param m       the invite duration.
      * @param l       the number of words.
      */
-    public MatchTask(final WQDatabase datab, final ConcurrentHashMap<Integer, String> onlineu,
+    public MatchTask(final QuizzleDatabase datab, final ConcurrentHashMap<Integer, String> onlineu,
             final ConcurrentHashMap<String, InetSocketAddress> maddr, final Selector sel, final SelectionKey selk,
             final String frnd, final int n, final int m, final int l) {
         this.database = datab;
@@ -156,7 +157,7 @@ public class MatchTask implements TaskInterface {
             return;
         } else {
             // Check if the two users are friends.
-            final WQUser challenger = database.retrieveUser(nickname);
+            final QuizzleUser challenger = database.retrieveUser(nickname);
             final ArrayList<String> challengerFriends = challenger.getFriends();
             if (!(challengerFriends.contains(friend))) {
                 msg = "Match error: user " + friend + " and you are not friends.\n";
@@ -301,7 +302,7 @@ public class MatchTask implements TaskInterface {
                         // Retrieving the words and the corresponding translations.
                         HashMap<String, ArrayList<String>> dictionary = null;
                         try {
-                            dictionary = new WQWords(matchWords).requestWords();
+                            dictionary = new MatchWords(matchWords).requestWords();
                         } catch (final IOException e) {
                             // If the translation service is not available.
                             available = false;

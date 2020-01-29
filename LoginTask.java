@@ -1,17 +1,16 @@
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  * The class LoginTask implements the login of a user. After being logged in,
- * the user is inserted in the WQServer's {@code onlineUsers} field which
+ * the user is inserted in the QuizzleServer's {@code onlineUsers} field which
  * consists of a {@link ConcurrentHashMap} where the keys are the port numbers
  * on which the users are connected to and the values are their nicknames. It
- * also adds the user's client UDP socket address to the WQserver's
+ * also adds the user's client UDP socket address to the QuizzleServer's
  * {@code matchAddressBook} field.
  * 
  * 
@@ -25,25 +24,24 @@ public class LoginTask implements TaskInterface {
     /* ---------------- Fields -------------- */
 
     /**
-     * The database of the WQServer.
+     * The database of the QuizzleServer.
      */
-    private final WQDatabase database;
+    private final QuizzleDatabase database;
 
     /**
-     * The onlineUsers of the WQServer.
+     * The onlineUsers of the QuizzleServer.
      */
     private ConcurrentHashMap<Integer, String> onlineUsers;
 
     /**
-     * The matchAddressBook of the WQServer.
+     * The matchAddressBook of the QuizzleServer.
      */
     private ConcurrentHashMap<String, InetSocketAddress> matchAddressBook;
 
     /**
-     * The Selector of the code WQServer.
+     * The server's post depot.
      */
-    private final Selector selector;
-
+    private final LinkedBlockingQueue<QuizzleMail> depot;
     /**
      * The SelectionKey with attached the Socket upon which to perform the login
      * task.
@@ -71,19 +69,19 @@ public class LoginTask implements TaskInterface {
      * @param datab   the database.
      * @param onlineu the list of online users.
      * @param baddr   the UDP book address.
-     * @param sel     the selector.
+     * @param queue   the post depot.
      * @param selk    the selection key of interest.
      * @param nick    the user's nickname.
      * @param pwd     the user's password.
      * @param prt     the user's port to use for UDP communication.
      */
-    public LoginTask(final WQDatabase datab, final ConcurrentHashMap<Integer, String> onlineu,
-            final ConcurrentHashMap<String, InetSocketAddress> baddr, final Selector sel, final SelectionKey selk,
-            final String nick, final String pwd, final int prt) {
+    public LoginTask(final QuizzleDatabase datab, final ConcurrentHashMap<Integer, String> onlineu,
+            final ConcurrentHashMap<String, InetSocketAddress> baddr, final LinkedBlockingQueue<QuizzleMail> queue,
+            final SelectionKey selk, final String nick, final String pwd, final int prt) {
         this.database = datab;
         this.onlineUsers = onlineu;
         this.matchAddressBook = baddr;
-        this.selector = sel;
+        this.depot = queue;
         this.key = selk;
         this.nickname = nick;
         this.password = pwd;
@@ -91,17 +89,12 @@ public class LoginTask implements TaskInterface {
     }
 
     public void run() {
-
         final SocketChannel clientSocket = (SocketChannel) key.channel();
-        final ByteBuffer bBuff = (ByteBuffer) key.attachment();
-
         String msg;
         // Check if user is registered.
         if (!(database.retrieveUser(nickname) != null)) {
             msg = "Login error: user " + nickname + " not found. Please register.\n";
-            TaskInterface.writeMsg(msg, bBuff, clientSocket);
-            key.interestOps(SelectionKey.OP_READ);
-            selector.wakeup();
+            TaskInterface.insertMail(depot, key, msg);
             return;
         } else {
             // Check if user is already logged with another account.
@@ -114,14 +107,12 @@ public class LoginTask implements TaskInterface {
                     msg = "Login error: " + nickname + " is already logged in.\n";
                 else
                     msg = "Login error: you are already logged with another account.\n";
-                TaskInterface.writeMsg(msg, bBuff, clientSocket);
-                key.interestOps(SelectionKey.OP_READ);
-                selector.wakeup();
+                TaskInterface.insertMail(depot, key, msg);
                 return;
             } else {
                 // If user is not logged then must check the password.
                 final int hash = password.hashCode();
-                WQUser usr = database.retrieveUser(nickname);
+                QuizzleUser usr = database.retrieveUser(nickname);
                 if (hash == usr.getPwdHash()) {
                     // If the password matches then proceeds inserting the user among the online
                     // users and the user's IP in the match address book.
@@ -131,15 +122,11 @@ public class LoginTask implements TaskInterface {
                     matchAddressBook.put(nickname, socketAddr);
                     System.out.println(nickname + " logged in.\n");
                     msg = "Login successful.\n";
-                    TaskInterface.writeMsg(msg, bBuff, clientSocket);
-                    key.interestOps(SelectionKey.OP_READ);
-                    selector.wakeup();
+                    TaskInterface.insertMail(depot, key, msg);
                 } else {
                     // If the password doesn't match returns an error message.
                     msg = "Login error: wrong password.\n";
-                    TaskInterface.writeMsg(msg, bBuff, clientSocket);
-                    key.interestOps(SelectionKey.OP_READ);
-                    selector.wakeup();
+                    TaskInterface.insertMail(depot, key, msg);
                     return;
                 }
             }

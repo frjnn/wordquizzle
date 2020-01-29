@@ -1,19 +1,19 @@
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  * The class LogoutTask implements the logout of a user. After being logged out,
- * the user is removed from the WQServer's {@code onlineUsers} field which
+ * the user is removed from the Quizzle Server's {@code onlineUsers} field which
  * consists of a {@link ConcurrentHashMap} where the keys are the port numbers
  * on which the users are connected and the values are their nicknames.
  * LogoutTask then proceeds to close the SocketChannel associated with the
  * user's client thus terminating the connection. The class also removes the
- * client's UDP socket InetSocketAddress from the WQServer's field
+ * client's UDP socket InetSocketAddress from the Quizzle Server's field
  * {@code matchBookAddress}.
  * 
  * <p>
@@ -26,19 +26,23 @@ public class LogoutTask implements TaskInterface {
     /* ---------------- Fields -------------- */
 
     /**
-     * The onlineUsers of the WQServer.
+     * The onlineUsers of the Quizzle Server.
      */
     private ConcurrentHashMap<Integer, String> onlineUsers;
 
     /**
-     * The matchAddressBook of the WQServer.
+     * The matchAddressBook of the Quizzle Server.
      */
     private ConcurrentHashMap<String, InetSocketAddress> matchBookAddress;
 
     /**
-     * The Selector of the code WQServer.
+     * The QuizzleServer's selector.
      */
     private final Selector selector;
+    /**
+     * The post depot of the Quizzle Server.
+     */
+    private final LinkedBlockingQueue<QuizzleMail> depot;
 
     /**
      * The SelectionKey with attached the Socket upon which to perform the logout
@@ -57,15 +61,17 @@ public class LogoutTask implements TaskInterface {
      * @param onlineu the list of online users.
      * @param baddr   the list of UDP addresses of the clients.
      * @param sel     the selector.
+     * @param queue   the mail depot.
      * @param selk    the selection key of interest.
      * @param brutal  if {@code true} performs a brutal logout.
      */
     public LogoutTask(final ConcurrentHashMap<Integer, String> onlineu,
-            final ConcurrentHashMap<String, InetSocketAddress> baddr, final Selector sel, final SelectionKey selk,
-            final boolean brutal) {
+            final ConcurrentHashMap<String, InetSocketAddress> baddr, final Selector sel,
+            final LinkedBlockingQueue<QuizzleMail> queue, final SelectionKey selk, final boolean brutal) {
         this.onlineUsers = onlineu;
         this.matchBookAddress = baddr;
         this.selector = sel;
+        this.depot = queue;
         this.key = selk;
         this.brutal = brutal;
     }
@@ -73,7 +79,6 @@ public class LogoutTask implements TaskInterface {
     public void run() {
 
         final SocketChannel clientSocket = (SocketChannel) key.channel();
-        final ByteBuffer bBuff = (ByteBuffer) key.attachment();
 
         // Retrieves the nickname from the port number.
         int clientPort = clientSocket.socket().getPort();
@@ -94,20 +99,12 @@ public class LogoutTask implements TaskInterface {
             selector.wakeup();
             return;
         }
-
+        // Normal logout procedure.
         String msg;
-
         onlineUsers.remove(clientPort);
         matchBookAddress.remove(nickname);
         System.out.println(nickname + " logged out.\n");
-        msg = "Logout successful\n";
-        TaskInterface.writeMsg(msg, bBuff, clientSocket);
-        try {
-            clientSocket.close();
-        } catch (IOException ioe) {
-            ioe.printStackTrace();
-        }
-        key.cancel();
-        selector.wakeup();
+        msg = "Logout successful.\n";
+        TaskInterface.insertMail(depot, key, msg);
     }
 }
