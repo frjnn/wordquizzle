@@ -4,9 +4,9 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
- * The QuizzleUser class models a user and implements the comparable interface,
- * sorting the users is necessary to build the scoreboard. See the
- * {@link GetScoreboardTask} for more details.
+ * The QuizzleUser class models a user, it implements the comparable interface,
+ * sorting the users by their scores is in fact necessary to build the
+ * scoreboard. See the {@link GetScoreboardTask} for more details.
  */
 public class QuizzleUser implements Comparable<QuizzleUser> {
 
@@ -46,8 +46,8 @@ public class QuizzleUser implements Comparable<QuizzleUser> {
     }
 
     /**
-     * This is the default constructor used by Jackson to deserialize the
-     * QuizzleServer's {@code database}.
+     * This is the default constructor used by the Jackson library to deserialize
+     * the QuizzleServer's {@code database}.
      * 
      * @param nickname the nickname of the user.
      * @param pwdHash  the password hash of the user.

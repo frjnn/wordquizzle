@@ -13,6 +13,11 @@ import java.util.concurrent.LinkedBlockingQueue;
  * to the client an error message if the user is trying to add himself as a
  * friend or is trying to add a user whom he is already friend with or the user
  * he wants to add as a friend is not registered.
+ * 
+ * <p>
+ * The task doesn't directly communicate the result of the operation to the
+ * client, instead, it inserts in the QuizzleServer post depot a QuizzleMail
+ * class' instance that will be delivered to the client by the Mailman thread.
  */
 public class AddFriendTask implements TaskInterface {
 
@@ -82,7 +87,7 @@ public class AddFriendTask implements TaskInterface {
             // friend's nickname.
             if (nickname.equals(friend))
                 msg = "Add friend error: you cannot add yourself as a friend.\n";
-            // Add the friend
+            // Add the friend.
             else if (database.addFriend(nickname, friend))
                 msg = friend + " is now your friend.\n";
             else

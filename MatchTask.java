@@ -28,15 +28,16 @@ import java.util.concurrent.ConcurrentHashMap;
  * port, i.e. the {@code matchChannel}'s socket port, that, if he accepts the
  * invitation, must be used to join the match. The invitation time to live is
  * implemented by setting a timeout on the {@code invSocket}, which is the
- * socket used by the task to send the match invitation and then receive the
+ * socket used by the task to send the match invitation and to receive the
  * response. If the challenged user accept, the match port is communicated to
  * the challengig user via its main TCP connection with the QuizzleServer.
  * MatchTask then waits for both users to join the match. When both users join
  * the match begins. The words are randomly selected from the
- * {@code ItalianDictionary.txt} file and translated. When the match ends the
- * final score of both user is computed and assigned, immediatly after, the
- * QuizzleServer's {@link QuizzleDatabase} instance is serialized to save the
- * changes.
+ * {@code ItalianDictionary.txt} file and translated. The match takes place only
+ * if the translation service is available, otherwise the server returns to both
+ * the players an error message. When the match ends the final score of both
+ * user is computed and assigned, immediatly after, the QuizzleServer's
+ * {@link QuizzleDatabase} instance is serialized to save the changes.
  * 
  * <p>
  * If a user correctly translates a word he is assigned 2 points, if he doesn't
@@ -113,8 +114,8 @@ public class MatchTask implements TaskInterface {
      * @param sel     the selector.
      * @param selk    the selection key of interest.
      * @param frnd    the friend to challenge.
-     * @param n       the match legth.
-     * @param m       the invite duration.
+     * @param n       the match legnth.
+     * @param m       the invite expiry.
      * @param l       the number of words.
      */
     public MatchTask(final QuizzleDatabase datab, final ConcurrentHashMap<Integer, String> onlineu,
@@ -136,10 +137,12 @@ public class MatchTask implements TaskInterface {
         final SocketChannel clientSocket = (SocketChannel) key.channel();
         final ByteBuffer bBuff = (ByteBuffer) key.attachment();
 
+        // This is the variable where the response to be sent to the challenging client
+        // is stored.
         String msg;
         // Will be set to false if the mymemory service is not reachable.
         boolean available = true;
-        // Those booleans are used to temrinate the task if the service is unavailable.
+        // Those booleans are used to terminate the task if the service is unavailable.
         boolean term1 = false;
         boolean term2 = false;
 
@@ -166,7 +169,7 @@ public class MatchTask implements TaskInterface {
                 selector.wakeup();
                 return;
             } else {
-                /// Check if the friend is offline.
+                // Check if the friend is offline.
                 if (!onlineUsers.containsValue(friend)) {
                     msg = "Match error: " + friend + " is offline\n";
                     TaskInterface.writeMsg(msg, bBuff, clientSocket);
@@ -203,7 +206,8 @@ public class MatchTask implements TaskInterface {
                     // number to which the challenged user must connect if he accepts the
                     // invitation.
                     final byte[] invitation = (nickname + "/" + matchChannel.socket().getLocalPort()).getBytes();
-                    // Getting the challenged user's IP address in order to set the packet
+                    // Getting the challenged user's IP address from the matchBookAddress in order
+                    // to set the packet
                     // destination.
                     final InetSocketAddress friendAddress = matchBookAddress.get(friend);
                     // Send the invitation.
@@ -215,7 +219,9 @@ public class MatchTask implements TaskInterface {
                     } catch (final SocketTimeoutException e) {
                         msg = "Match error: invitation to " + friend + " timed out.\n";
                         // If the invitaiton times out, notifies the friend to delete the pending match
-                        // invitation from his client's challengers hashmap.
+                        // invitation from his client's challengers hashmap by sending another UDP
+                        // datagram. Doing so ensures that the MatchListener thread of the challenged
+                        // client knows to throw away the expired invitation.
                         byte[] friendMsg = ("TIMEOUT/" + nickname).getBytes();
                         TaskInterface.sendDatagram(invSocket, friendMsg, friendAddress);
                         TaskInterface.writeMsg(msg, bBuff, clientSocket);
@@ -252,7 +258,7 @@ public class MatchTask implements TaskInterface {
                         // Getting the players addresses from the matchBookAddress.
                         InetAddress add1 = matchBookAddress.get(nickname).getAddress();
                         InetAddress add2 = matchBookAddress.get(friend).getAddress();
-                        // Waiting for both players to join.
+                        // Waiting for both players to join the match.
                         while (!joined1 || !joined2) {
                             try {
                                 final int readyKeys = matchSelector.select();
@@ -308,6 +314,7 @@ public class MatchTask implements TaskInterface {
                             available = false;
                             // e.printStackTrace();
                         }
+                        // Getting the dictionay map keys, i.e. the words.
                         String[] words;
                         if (available) {
                             words = dictionary.keySet().toArray(new String[dictionary.size()]);
@@ -317,10 +324,17 @@ public class MatchTask implements TaskInterface {
                         // Setting the match timer.
                         final long startTime = System.currentTimeMillis();
                         long currentTime = System.currentTimeMillis();
+                        // Seting the array where the two player translation will be stored.
                         final String[] response1 = new String[matchWords];
                         final String[] response2 = new String[matchWords];
+                        // Indexes, will be used in the algorith to calculate the scores.
                         int index1 = 0;
                         int index2 = 0;
+                        // Match cycle, the loop stops when either:
+                        // - the time runs out.
+                        // - both players send all of the translations.
+                        // - both players have been notified that the service is unavailable, if the
+                        // service is unavailable.
                         while (currentTime < (startTime + (matchTimer * 60000))
                                 && (index1 < matchWords + 1 || index2 < matchWords + 1) && (!term1 || !term2)) {
                             try {
@@ -339,7 +353,7 @@ public class MatchTask implements TaskInterface {
                                             final SocketChannel clientChann = (SocketChannel) key.channel();
                                             final ByteBuffer clientBuff = (ByteBuffer) key.attachment();
                                             final String translation = TaskInterface.readMsg(clientChann, clientBuff);
-                                            // If a user crashes setting to blank all og his remaining responses.
+                                            // If a user crashes setting to blank all of his remaining responses.
                                             if (translation.equals("crashed")) {
                                                 if (clientChann.socket().getPort() == challengedPort) {
                                                     for (int i = index2 - 1; i < matchWords; i++) {
@@ -354,8 +368,8 @@ public class MatchTask implements TaskInterface {
                                                 }
                                                 key.interestOps(0);
                                             } else {
-                                                // It means that the mymemoryAPI is down.
                                                 if (!available) {
+                                                    // The mymemoryAPI is down.
                                                     TaskInterface.writeMsg(
                                                             "Sorry, the translation service is unavailable. Try later."
                                                                     + "\n",
@@ -366,9 +380,12 @@ public class MatchTask implements TaskInterface {
                                                         term2 = true;
                                                     }
                                                 } else {
-                                                    // Submitting a new word.
+                                                    // Submitting a word and updating the indexes.
                                                     final String[] split = translation.split("/");
                                                     final String name = split[1];
+                                                    // In order to distinguish between the two players a protocol has
+                                                    // been adopted. This protocol imposes that the translations must be
+                                                    // followed by the nickname of the client that sen them.
                                                     if (translation.equals("START/" + friend)) {
                                                         TaskInterface.writeMsg(words[index2] + "\n", clientBuff,
                                                                 clientChann);
@@ -402,10 +419,11 @@ public class MatchTask implements TaskInterface {
                             } catch (final IOException e) {
                                 e.printStackTrace();
                             }
+                            // Updating the time.
                             currentTime = System.currentTimeMillis();
                         }
                         if (available) {
-                            // Computing the scores.
+                            // Computing the scores in an old fashioned way.
                             int score1 = 0;
                             int score2 = 0;
                             final int bonus = 3;
@@ -440,6 +458,7 @@ public class MatchTask implements TaskInterface {
                                 msg1 = "won";
                             } else
                                 msg1 = msg2 = "drew";
+                            // Building the results messages.
                             if (currentTime < (startTime + (matchTimer * 60000))) {
                                 TaskInterface.writeMsg(
                                         "END/You have scored: " + score1 + " points. You " + msg1 + ".\n", resultsBuff1,

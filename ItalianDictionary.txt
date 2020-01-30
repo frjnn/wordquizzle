@@ -4,6 +4,7 @@ acqua
 aereo da guerra
 albero
 alcolista
+amore
 anorettale
 antico
 aquila
@@ -16,6 +17,7 @@ ascensore
 ascia
 asciugamano
 attacco
+automobile
 barca
 birra 
 bomba nucleare
@@ -26,6 +28,7 @@ bottiglia
 braccio
 buddista
 bulbo
+burro
 busta
 busto
 calcio
@@ -33,6 +36,7 @@ calzino
 cane
 cannone
 cappero
+carbone
 carota
 carro armato
 carta
@@ -44,14 +48,18 @@ cellula
 città
 cocaina
 coccodrillo
+codardo
 coltello
 comunista
 concussione
+coppia
 decapitazione
+demagogo
 dente
 diavolo
 difesa
 dio
+dipendenza
 donna
 droga
 drogato
@@ -64,6 +72,7 @@ esplosione
 estero
 evoluzione
 fango
+farina
 fascista
 feci
 figlio
@@ -99,6 +108,7 @@ mare
 marina
 masturbazione
 matematica
+matita 
 mazza
 mazzetta
 mela
@@ -111,6 +121,12 @@ mostro
 musulmano
 nazista
 numero
+odio
+onanismo
+ospedale
+ospite
+ostracismo
+ostrica
 pagliaccio
 palazzo
 palle
@@ -164,6 +180,7 @@ rabbino
 ragazza
 ragazzo
 rana
+religione
 rivista porno
 ruota
 sacchetto
@@ -210,6 +227,7 @@ tifosi
 torre
 torre d'assedio
 tossico
+traditore
 trincea
 tritatore
 tutto
@@ -219,12 +237,7 @@ uva
 vino 
 violenza
 vomito
-zio
 zingaro
+zio
 zucca
 zucchina
-ospedale
-onanismo
-ospite
-ostracismo
-ostrica

@@ -11,6 +11,11 @@ import java.util.concurrent.LinkedBlockingQueue;
  * this task the QuizzleServer will return the user's scoreboard in the form of
  * a string containing all of the user's friends nicknames, each associated with
  * the corresponding friend's score, and the user's nickname and score.
+ * 
+ * <p>
+ * The task doesn't directly communicate the result of the operation to the
+ * client, instead, it inserts in the QuizzleServer post depot a QuizzleMail
+ * class' instance that will be delivered to the client by the Mailman thread.
  */
 public class GetScoreboardTask implements TaskInterface {
 
@@ -71,6 +76,7 @@ public class GetScoreboardTask implements TaskInterface {
             msg += u.getNickname() + " " + u.getScore() + " ";
         }
         msg += "\n";
+        // Inserting the results in the post depot.
         TaskInterface.insertMail(depot, key, msg);
     }
 }

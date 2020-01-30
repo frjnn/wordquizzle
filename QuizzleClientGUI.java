@@ -75,7 +75,7 @@ public class QuizzleClientGUI {
     /**
      * The client's graphic user interface.
      */
-    private JFrame gui;
+    private final JFrame gui;
 
     /**
      * This is the constructor for the QuizzleClientGUI class. Returns a new
@@ -87,15 +87,15 @@ public class QuizzleClientGUI {
      *                         opened, or the socket could not be bound to the
      *                         specified local port.
      */
-    public QuizzleClientGUI(int probe) throws SocketException {
+    public QuizzleClientGUI(final int probe) throws SocketException {
         probe_port = probe;
         TCPSock = new Socket();
         UDPSock = new DatagramSocket();
         challengers = new ConcurrentHashMap<String, DatagramPacket>();
+        gui = this.setMainFrame();
         UDPListener = new MatchListener(UDPSock, challengers, gui);
         invitationsMonitor = new Thread(UDPListener);
         invitationsMonitor.start();
-        gui = this.setMainFrame();
     }
 
     /**
@@ -231,7 +231,7 @@ public class QuizzleClientGUI {
             JOptionPane.showMessageDialog(gui, responseWords[0], "WordQuizzle - Info", JOptionPane.INFORMATION_MESSAGE);
             try {
                 Thread.sleep(2000);
-            } catch (InterruptedException e) {
+            } catch (final InterruptedException e) {
                 e.printStackTrace();
             }
             setChallengeFrame(challengeSock);
@@ -301,7 +301,7 @@ public class QuizzleClientGUI {
         try {
             dataIn = sock.getInputStream();
             dataOut = sock.getOutputStream();
-        } catch (final Exception e) {
+        } catch (final IOException e) {
             e.printStackTrace();
         }
         // Creates a new InputStreamReader and decorates it with a BufferedReader.
@@ -313,7 +313,7 @@ public class QuizzleClientGUI {
         try {
             // Sends the request on the socket.
             dataOut.write(request);
-        } catch (final Exception e) {
+        } catch (final IOException e) {
             e.printStackTrace();
         }
         String response = null;
@@ -330,8 +330,8 @@ public class QuizzleClientGUI {
      * It's a method that the client executes to automatically retrieve the running
      * QuizzleServer instance's InetSocketAddress. The attempt to find the server
      * lasts 5 seconds. It works by sending an UPD packet to the LAN broadcast
-     * address on the port 9999. A QuizzleServer, if there is one active, will
-     * eventually respond.
+     * address on the port passed by argumet. A QuizzleServer, if there is one
+     * active, will eventually respond.
      * 
      * @return the QuizzleServer InetSocketAddress that is being run on the LAN.
      * @throws SocketException if something fishy happens when opening the UDP
@@ -342,8 +342,7 @@ public class QuizzleClientGUI {
     private InetSocketAddress probe() throws SocketException, IOException {
         final DatagramSocket probeSocket = new DatagramSocket();
         // If a QuizzleServer doesn't respond back after 5 seconds, consider the
-        // concetion
-        // attempt failed.
+        // connection attempt failed.
         probeSocket.setSoTimeout(5000);
         // Sending and empty datagram.
         final byte[] msg = ("").getBytes();
@@ -447,7 +446,7 @@ public class QuizzleClientGUI {
         logoutButton.addActionListener(e -> {
             try {
                 logout();
-            } catch (final Exception ex) {
+            } catch (final IOException ex) {
                 ex.printStackTrace();
             }
             mainFrame.dispose();
@@ -461,11 +460,7 @@ public class QuizzleClientGUI {
                         JOptionPane.INFORMATION_MESSAGE);
             } else {
                 String response = null;
-                try {
-                    response = add_friend(username.getText());
-                } catch (final Exception ex) {
-                    ex.printStackTrace();
-                }
+                response = add_friend(username.getText());
                 if (response.equals(username.getText() + " " + "is now your friend."))
                     JOptionPane.showMessageDialog(mainFrame, response, "Word Quizzle - Info",
                             JOptionPane.INFORMATION_MESSAGE);
@@ -486,7 +481,7 @@ public class QuizzleClientGUI {
                 mainFrame.remove(addFriendButton);
                 final String response = friend_list();
                 if (!response.equals("You currently have no friends, add some!")) {
-                    String refine = response.replace("Your friends are:", "");
+                    final String refine = response.replace("Your friends are:", "");
                     final String[] friends = refine.split(" ");
                     for (final String s : friends) {
                         if (!s.equals(""))
@@ -549,7 +544,7 @@ public class QuizzleClientGUI {
 
         // Match button action listener.
         matchButton.addActionListener(e -> {
-            int index = scoreBoard.getSelectedIndex();
+            final int index = scoreBoard.getSelectedIndex();
             if (index != -1) {
                 final String selected = scoreBoard.getSelectedValue();
                 final String[] args = selected.split(" ");
@@ -565,8 +560,10 @@ public class QuizzleClientGUI {
                     if (challengers.containsKey(nick)) {
                         try {
                             acceptMatch(nick);
-                        } catch (Exception ex) {
+                        } catch (final IOException ex) {
                             ex.printStackTrace();
+                        } catch (final InterruptedException iex) {
+                            iex.printStackTrace();
                         }
                     } else {
                         try {
@@ -654,7 +651,7 @@ public class QuizzleClientGUI {
                 String response = null;
                 try {
                     response = login(username.getText(), new String(password.getPassword()));
-                } catch (final Exception ex) {
+                } catch (final IOException ex) {
                     ex.printStackTrace();
                 }
                 if (response.equals("Login successful.")) {
@@ -754,7 +751,7 @@ public class QuizzleClientGUI {
                 String esito = null;
                 try {
                     esito = registration(nickname.getText(), new String(password.getPassword()));
-                } catch (final Exception ex) {
+                } catch (final RemoteException ex) {
                     ex.printStackTrace();
                 }
                 if (esito.equals("Registration succeeded.")) {
@@ -785,7 +782,7 @@ public class QuizzleClientGUI {
      * 
      * @param s the match socket.
      */
-    private void setChallengeFrame(Socket s) {
+    private void setChallengeFrame(final Socket s) {
         // Disables the main frame when the match starts.
         gui.setEnabled(false);
         // Frame creation.
@@ -799,10 +796,10 @@ public class QuizzleClientGUI {
         challengeFrame.setResizable(Boolean.FALSE);
         challengeFrame.setLayout(null);
         // Creation of the frame components.
-        JLabel word = new JLabel();
-        JButton submitButton = new JButton("Submit");
+        final JLabel word = new JLabel();
+        final JButton submitButton = new JButton("Submit");
         submitButton.setFont(new Font("Arial", Font.PLAIN, 10));
-        TextField insert = new TextField();
+        final TextField insert = new TextField();
         // Adding the components to the frame.
         word.setBounds(35, 30, 130, 20);
         insert.setBounds(35, 70, 130, 20);
@@ -815,7 +812,7 @@ public class QuizzleClientGUI {
         boolean service = true;
         // The first message sent to the server contains "START/" followed by the user's
         // nick. It is useful to differentiate the sockets server side.
-        String resp = clientComunicate(s, "START/" + myName);
+        final String resp = clientComunicate(s, "START/" + myName);
         // If the servers comunicates that the translation api is unavailable the match
         // doesn't take place.
         if (resp.equals("Sorry, the translation service is unavailable. Try later.")) {
@@ -828,9 +825,9 @@ public class QuizzleClientGUI {
                     JOptionPane.INFORMATION_MESSAGE);
             word.setText(resp);
             submitButton.addActionListener(e -> {
-                String input = insert.getText() + "/" + myName;
-                String res = clientComunicate(s, input);
-                String[] a = res.split("/");
+                final String input = insert.getText() + "/" + myName;
+                final String res = clientComunicate(s, input);
+                final String[] a = res.split("/");
                 if (a[0].equals("END")) {
                     submitButton.setEnabled(false);
                     word.setText("");

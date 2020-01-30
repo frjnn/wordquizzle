@@ -26,7 +26,7 @@ public class QuizzleClient {
     /* ---------------- Fields -------------- */
 
     /**
-     * The InetSocketAddress of the QuizzleServer.
+     * The InetSocketAddress of the QuizzleServer. Is probed from the LAN.
      */
     private InetSocketAddress serverAddress;
 
@@ -38,18 +38,18 @@ public class QuizzleClient {
     /**
      * The TCP socket used for server communication.
      */
-    private Socket TCPSock;
+    private Socket mainSocket;
 
     /**
      * The UDP socket used for accepting match invitations.
      */
-    private final DatagramSocket UDPSock;
+    private final DatagramSocket invSocket;
 
     /**
      * The MatchListener class instance. The class implements the runnable
      * interface, it listens for match invitations.
      */
-    private final MatchListener UDPListener;
+    private final MatchListener invListener;
 
     /**
      * The thread on which MatchListener's run method is bein executed.
@@ -83,17 +83,17 @@ public class QuizzleClient {
      */
     public QuizzleClient(int probe) throws SocketException {
         this.probe_port = probe;
-        TCPSock = new Socket();
-        UDPSock = new DatagramSocket();
+        mainSocket = new Socket();
+        invSocket = new DatagramSocket();
         challengers = new ConcurrentHashMap<String, DatagramPacket>();
-        UDPListener = new MatchListener(UDPSock, challengers);
-        invitationsMonitor = new Thread(UDPListener);
+        invListener = new MatchListener(invSocket, challengers);
+        invitationsMonitor = new Thread(invListener);
         invitationsMonitor.start();
         cons = System.console();
     }
 
     /**
-     * Handles the RMI to register the user to the database.
+     * Handles the RMI to register the user in the database.
      * 
      * @param nick the nickname of the user to be registered.
      * @param pwd  the password of the user.
@@ -129,22 +129,22 @@ public class QuizzleClient {
         // QuizzleClient class has just been created and the socket has been initialized
         // but
         // is not connected.
-        if (!TCPSock.isConnected() && !TCPSock.isClosed()) {
-            TCPSock.connect(serverAddress);
+        if (!mainSocket.isConnected() && !mainSocket.isClosed()) {
+            mainSocket.connect(serverAddress);
         }
         // If the socket is closed it means that a logout has been executed by the
         // client thus the old socket TCP has been closed and a new one must be created.
-        else if (TCPSock.isClosed()) {
-            TCPSock = new Socket();
-            TCPSock.connect(serverAddress);
+        else if (mainSocket.isClosed()) {
+            mainSocket = new Socket();
+            mainSocket.connect(serverAddress);
         }
         // Sends a login request to the server and reads the result into response.
-        final String response = clientComunicate(TCPSock, "0 " + nick + " " + pwd + " " + UDPSock.getLocalPort());
+        final String response = clientComunicate(mainSocket, "0 " + nick + " " + pwd + " " + invSocket.getLocalPort());
         System.out.println(response);
         if (response.equals("Login error: wrong password.")) {
             // Closes the socket, if it's not already closed, because the login failed.
-            if (!TCPSock.isClosed())
-                TCPSock.close();
+            if (!mainSocket.isClosed())
+                mainSocket.close();
         }
         if (response.equals("Login successful.")) {
             // Assigns the name to this QuizzleClient instance in order to recycle it for
@@ -160,15 +160,15 @@ public class QuizzleClient {
      */
     private void logout() throws IOException {
         // Check if the user is logged in.
-        if (!TCPSock.isConnected()) {
+        if (!mainSocket.isConnected()) {
             System.out.println("You're not logged in.");
             return;
         }
-        final String response = clientComunicate(TCPSock, "1");
+        final String response = clientComunicate(mainSocket, "1");
         System.out.println(response);
         // closes socket if logout is successful
         if (response.equals("Logout successful."))
-            TCPSock.close();
+            mainSocket.close();
     }
 
     /**
@@ -178,12 +178,12 @@ public class QuizzleClient {
      */
     private void add_friend(final String friend) {
         // Check if the user is logged in.
-        if (!TCPSock.isConnected()) {
+        if (!mainSocket.isConnected()) {
             System.out.println("You're not logged in.");
             return;
         }
         // Sends a friend request and prints the server's response.
-        System.out.println(clientComunicate(TCPSock, "2" + " " + friend));
+        System.out.println(clientComunicate(mainSocket, "2" + " " + friend));
     }
 
     /**
@@ -191,12 +191,12 @@ public class QuizzleClient {
      */
     private void friend_list() {
         // Check if the user is connected.
-        if (!TCPSock.isConnected()) {
+        if (!mainSocket.isConnected()) {
             System.out.println("You're not logged in");
             return;
         }
         // Sends a friends list request and prints the user's friends.
-        System.out.println(clientComunicate(TCPSock, "3"));
+        System.out.println(clientComunicate(mainSocket, "3"));
     }
 
     /**
@@ -204,12 +204,12 @@ public class QuizzleClient {
      */
     private void score() {
         // Check if the user is logged in.
-        if (!TCPSock.isConnected()) {
+        if (!mainSocket.isConnected()) {
             System.out.println("You're not logged in");
             return;
         }
         // Requests the score to the server and prints it.
-        System.out.println(clientComunicate(TCPSock, "4"));
+        System.out.println(clientComunicate(mainSocket, "4"));
     }
 
     /**
@@ -217,13 +217,13 @@ public class QuizzleClient {
      */
     private void scoreboard() {
         // Check if the user is logged in.
-        if (!TCPSock.isConnected()) {
+        if (!mainSocket.isConnected()) {
             System.out.println("You're not logged in");
             return;
         }
         // Sends a scoreboard request to the server and prints the scoreboard for the
         // user himself and his friends.
-        System.out.println(clientComunicate(TCPSock, "5"));
+        System.out.println(clientComunicate(mainSocket, "5"));
     }
 
     /**
@@ -235,13 +235,13 @@ public class QuizzleClient {
      */
     private void match(final String friend) throws IOException {
         // Check if the user is logged in;
-        if (!TCPSock.isConnected()) {
+        if (!mainSocket.isConnected()) {
             System.out.println("You're not logged in.");
             return;
         }
         // Sends a match request to a friend and blocks until the server communicates
         // acception or refusal, then stores the answer in resp.
-        final String resp = clientComunicate(TCPSock, "6" + " " + friend);
+        final String resp = clientComunicate(mainSocket, "6" + " " + friend);
         // Splits the answer on the "/" char, if the match is accepted responseWords[1]
         // contains the port of the freshly opened server's side socket.
         final String[] responseWords = resp.split("/");
@@ -265,7 +265,7 @@ public class QuizzleClient {
      */
     private void showMatches() {
         // Check if the user is logged in.
-        if (!TCPSock.isConnected()) {
+        if (!mainSocket.isConnected()) {
             System.out.println("You're not logged in.");
             return;
         }
@@ -293,7 +293,7 @@ public class QuizzleClient {
      */
     private void acceptMatch(final String friend) throws IOException, InterruptedException {
         // Check if the user is logged.
-        if (!TCPSock.isConnected()) {
+        if (!mainSocket.isConnected()) {
             System.out.println("You're not logged in.");
             return;
             // If there are no pending challenges.
@@ -313,7 +313,7 @@ public class QuizzleClient {
         byte[] buf = "Y".getBytes();
         // Creates the acceptance datagram and sends it.
         final DatagramPacket acceptance = new DatagramPacket(buf, buf.length, sockAddr, port);
-        UDPSock.send(acceptance);
+        invSocket.send(acceptance);
         final DatagramPacket response = challengers.get(friend);
         final String challenger = new String(response.getData(), response.getOffset(), response.getLength(),
                 StandardCharsets.UTF_8);
@@ -326,7 +326,7 @@ public class QuizzleClient {
             buf = "N".getBytes();
             final DatagramPacket refusal = new DatagramPacket(buf, buf.length, refusedFriend.getAddress(),
                     refusedFriend.getPort());
-            UDPSock.send(refusal);
+            invSocket.send(refusal);
         }
         // Removes all the pending challengers from the hashmap.
         challengers.clear();
@@ -363,6 +363,8 @@ public class QuizzleClient {
             while (!responseWords[0].equals("END")) {
                 System.out.print("Translation: ");
                 input = cons.readLine();
+                // The protocol imposes the the translation must be followed by the client's
+                // nickname.
                 input += "/" + myName;
                 System.out.print("Server: ");
                 resp = clientComunicate(sock, input);
@@ -380,7 +382,7 @@ public class QuizzleClient {
 
     /**
      * Parses the command line and calls the correct method in order to meet the
-     * user's needs.
+     * user's needs. It also checks the arguments.
      * 
      * @param input the command line input read by the Console class.
      * @throws IOException          might be raised by login, logout or accept_match
@@ -502,8 +504,7 @@ public class QuizzleClient {
     private InetSocketAddress probe() throws SocketException, IOException {
         final DatagramSocket probeSocket = new DatagramSocket();
         // If a QuizzleServer doesn't respond back after 5 seconds, consider the
-        // concetion
-        // attempt failed.
+        // concetion attempt failed.
         probeSocket.setSoTimeout(5000);
         // Sending and empty datagram.
         final byte[] msg = ("").getBytes();
@@ -610,19 +611,19 @@ public class QuizzleClient {
  */
 class MatchListener implements Runnable {
 
-    DatagramSocket UDPSocket;
+    DatagramSocket invSocketet;
     ConcurrentHashMap<String, DatagramPacket> challengers;
 
     /**
      * The constructor to MatchListener.
      * 
-     * @param UDPSock     the UDP socket where the listener will wait for
+     * @param invSocket   the UDP socket where the listener will wait for
      *                    invitations
      * @param challengers the HashMap all pending invitations are put
      */
     MatchListener(final DatagramSocket sock, final ConcurrentHashMap<String, DatagramPacket> map)
             throws SocketException {
-        UDPSocket = sock;
+        invSocketet = sock;
         challengers = map;
     }
 
@@ -632,7 +633,7 @@ class MatchListener implements Runnable {
             final DatagramPacket response = new DatagramPacket(buf, buf.length);
             try {
                 // Receives match invitations.
-                UDPSocket.receive(response);
+                invSocketet.receive(response);
                 System.out.println("You have a notification:");
             } catch (final IOException e) {
                 e.printStackTrace();

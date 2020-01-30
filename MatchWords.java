@@ -56,7 +56,10 @@ public class MatchWords {
      * than one translation.
      * 
      * @param word the word to translate.
-     * @throws IOException if some problems occur during file opening.
+     * @throws IOException if some problems occur during the translation process.
+     *                     This exception is very important because it signals to
+     *                     the method's caller that the service is currently
+     *                     unavailable.
      */
     private ArrayList<String> getTranslation(String word) throws IOException {
         // The ArrayList where all the possible translations of the string word will be
@@ -107,6 +110,7 @@ public class MatchWords {
         // Randomizing the words.
         int i = 0;
         while (i < this.wordNum) {
+            // Randomizing the words.
             String word = this.dictionary.get(rand.nextInt(this.dictionary.size()));
             if (!selectedWords.contains(word)) {
                 selectedWords.add(word);

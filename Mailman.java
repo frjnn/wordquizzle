@@ -11,7 +11,8 @@ import java.util.concurrent.LinkedBlockingQueue;
  * them. It has two fields: the {@code postDepot} field where the mail to
  * deliver is stored and the {@code selector} field where a reference to the
  * QuizzleServer's selector is kept, in order to perform the wakeup operation
- * and to also remove the key after a succesful logout operation.
+ * and to also remove the key after a succesful logout operation. The task
+ * remains in executin as long as the server is up.
  */
 public class Mailman implements TaskInterface {
 
@@ -58,6 +59,7 @@ public class Mailman implements TaskInterface {
             final ByteBuffer bBuff = (ByteBuffer) key.attachment();
             // Writing the message.
             TaskInterface.writeMsg(message, bBuff, clientSocket);
+            // If the client logged out, the mailman "throws away his mailbox".
             if (!message.equals("Logout successful.\n")) {
                 key.interestOps(SelectionKey.OP_READ);
                 selector.wakeup();

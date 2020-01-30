@@ -2,7 +2,7 @@ import java.nio.channels.SelectionKey;
 
 /**
  * This is the class used to model the response message to be sent to a
- * QuizzleClient.
+ * QuizzleClient. Mails are sent by the {@code QuizzleServer's} Mailman thread.
  */
 public class QuizzleMail {
 

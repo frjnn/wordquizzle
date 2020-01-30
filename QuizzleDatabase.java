@@ -16,7 +16,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  * QuizzleDatabase class, in fact, take cares of storing and serializing all fo
  * the QuizzleServer's persistent informations, such as the users nicknames and
  * passwords, the users friend lists and the users scores. All the serialization
- * is handled with the {@code Jackson} library.
+ * is handled with the {@code Jackson} library. This class also provides all the
+ * necessary methods to manipulate the database.
  */
 public class QuizzleDatabase {
 

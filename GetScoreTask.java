@@ -8,6 +8,11 @@ import java.util.concurrent.LinkedBlockingQueue;
  * the execution of this task the QuizzleServer will return a number
  * corresponding to the user's score represented by the field {@code score} of
  * the class QuizzleUser.
+ * 
+ * <p>
+ * The task doesn't directly communicate the result of the operation to the
+ * client, instead, it inserts in the QuizzleServer post depot a QuizzleMail
+ * class' instance that will be delivered to the client by the Mailman thread.
  */
 public class GetScoreTask implements TaskInterface {
 
@@ -59,6 +64,7 @@ public class GetScoreTask implements TaskInterface {
         // Retrieving the score.
         int score = database.retrieveUser(nickname).getScore();
         msg += score + "\n";
+        // Inserting the results in the post depot.
         TaskInterface.insertMail(depot, key, msg);
     }
 }

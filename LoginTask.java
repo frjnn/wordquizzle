@@ -18,6 +18,11 @@ import java.util.concurrent.LinkedBlockingQueue;
  * The class also takes care of checking the legality of the operation returning
  * to the client a error if the user is already logged or if the client is
  * trying to request multiple logins.
+ * 
+ * <p>
+ * The task doesn't directly communicate the result of the operation to the
+ * client, instead, it inserts in the QuizzleServer post depot a QuizzleMail
+ * class' instance that will be delivered to the client by the Mailman thread.
  */
 public class LoginTask implements TaskInterface {
 
@@ -94,6 +99,7 @@ public class LoginTask implements TaskInterface {
         // Check if user is registered.
         if (!(database.retrieveUser(nickname) != null)) {
             msg = "Login error: user " + nickname + " not found. Please register.\n";
+            // Inserting the results in the post depot.
             TaskInterface.insertMail(depot, key, msg);
             return;
         } else {
@@ -107,6 +113,7 @@ public class LoginTask implements TaskInterface {
                     msg = "Login error: " + nickname + " is already logged in.\n";
                 else
                     msg = "Login error: you are already logged with another account.\n";
+                // Inserting the results in the post depot.
                 TaskInterface.insertMail(depot, key, msg);
                 return;
             } else {
@@ -122,10 +129,12 @@ public class LoginTask implements TaskInterface {
                     matchAddressBook.put(nickname, socketAddr);
                     System.out.println(nickname + " logged in.\n");
                     msg = "Login successful.\n";
+                    // Inserting the results in the post depot.
                     TaskInterface.insertMail(depot, key, msg);
                 } else {
                     // If the password doesn't match returns an error message.
                     msg = "Login error: wrong password.\n";
+                    // Inserting the results in the post depot.
                     TaskInterface.insertMail(depot, key, msg);
                     return;
                 }

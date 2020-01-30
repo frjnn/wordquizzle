@@ -2,7 +2,8 @@ import java.rmi.Remote;
 import java.rmi.RemoteException;
 
 /**
- * Interface used for the remote method invocation.
+ * Interface used for the remote method invocation. The registration to the
+ * quizzle service is impeented by RMI.
  */
 public interface RegistrationRMI extends Remote {
     /**

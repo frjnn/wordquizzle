@@ -99,7 +99,8 @@ public class QuizzleServer extends UnicastRemoteObject implements RegistrationRM
 
     /**
      * The channel for the server's UDP socket on which it communicates the
-     * InetSocketAddress of TCPsocket to the clients sending probing UDP datagrams.
+     * InetSocketAddress of the TCP main socket to the clients sending probing UDP
+     * datagrams.
      */
     private DatagramChannel probeChannel;
 
@@ -282,16 +283,16 @@ public class QuizzleServer extends UnicastRemoteObject implements RegistrationRM
 
         // Setting up the Selector for accepting new connections.
         try {
-            final ServerSocket TCPsock = server.mainChannel.socket();
-            final DatagramSocket UDPsock = server.probeChannel.socket();
-            final InetSocketAddress TCPaddress = new InetSocketAddress(server.mainPort);
-            final InetSocketAddress UDPAddress = new InetSocketAddress(server.probePort);
-            TCPsock.bind(TCPaddress);
-            UDPsock.bind(UDPAddress);
+            final ServerSocket mainSocket = server.mainChannel.socket();
+            final DatagramSocket probeSocket = server.probeChannel.socket();
+            final InetSocketAddress mainSockAddr = new InetSocketAddress(server.mainPort);
+            final InetSocketAddress probeSockAddr = new InetSocketAddress(server.probePort);
+            mainSocket.bind(mainSockAddr);
+            probeSocket.bind(probeSockAddr);
             server.mainChannel.configureBlocking(false);
             server.probeChannel.configureBlocking(false);
-            final SelectionKey TCPkey = server.mainChannel.register(server.selector, SelectionKey.OP_ACCEPT);
-            final SelectionKey UDPkey = server.probeChannel.register(server.selector, SelectionKey.OP_READ);
+            final SelectionKey mainKey = server.mainChannel.register(server.selector, SelectionKey.OP_ACCEPT);
+            final SelectionKey probeKey = server.probeChannel.register(server.selector, SelectionKey.OP_READ);
             System.out.println("Listening for connections on port " + server.mainPort + " of host "
                     + InetAddress.getLocalHost().getHostName() + ".");
         } catch (final IOException IOE) {
@@ -338,7 +339,9 @@ public class QuizzleServer extends UnicastRemoteObject implements RegistrationRM
                             } else if (key.isReadable()) {
                                 // Getting the channel.
                                 final Channel channel = key.channel();
-                                // Testing whether the channel is a DatagramChannel or a SocketChannel.
+                                // Testing whether the channel is a DatagramChannel or a SocketChannel. If it's
+                                // a datagram channel it returns the necessary information to allow the client
+                                // to connect to the main socket
                                 if (channel instanceof DatagramChannel) {
                                     // If it's a DatagramChannel must respond to the probe wih the server's tcp
                                     // socket port.

@@ -49,7 +49,8 @@ public interface TaskInterface extends Runnable {
     }
 
     /**
-     * Utility function to read a message from a NIO socket.
+     * Utility function to read a message from a NIO socket. If the client crashed
+     * this function will return the string "crashed".
      * 
      * @param qClient the socket.
      * @param bBuff   the socket associated byte buffer.
@@ -103,7 +104,11 @@ public interface TaskInterface extends Runnable {
      */
     public static void insertMail(LinkedBlockingQueue<QuizzleMail> postDepot, SelectionKey selK, String message) {
         QuizzleMail mail = new QuizzleMail(selK, message);
-        postDepot.offer(mail);
+        try {
+            postDepot.put(mail);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     /**

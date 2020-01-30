@@ -20,6 +20,11 @@ import java.util.concurrent.LinkedBlockingQueue;
  * It's good to note that LogoutTask provides also a brutal logout operation, in
  * the form of a field i.e. {@code brutal} in its costructor. The brutal logout
  * is useful when a user crashes.
+ * 
+ * <p>
+ * The task doesn't directly communicate the result of the operation to the
+ * client, instead, it inserts in the QuizzleServer post depot a QuizzleMail
+ * class' instance that will be delivered to the client by the Mailman thread.
  */
 public class LogoutTask implements TaskInterface {
 
@@ -84,7 +89,8 @@ public class LogoutTask implements TaskInterface {
         int clientPort = clientSocket.socket().getPort();
         String nickname = onlineUsers.get(clientPort);
 
-        // Brutally logs out a user.
+        // Brutally logs out a user when he crahses. If a crash happen no message must
+        // be sent to the crashed client, the server just closes the connection.
         if (brutal) {
             if (nickname != null) {
                 matchBookAddress.remove(nickname);
@@ -105,6 +111,7 @@ public class LogoutTask implements TaskInterface {
         matchBookAddress.remove(nickname);
         System.out.println(nickname + " logged out.\n");
         msg = "Logout successful.\n";
+        // Inserting the results in the post depot.
         TaskInterface.insertMail(depot, key, msg);
     }
 }

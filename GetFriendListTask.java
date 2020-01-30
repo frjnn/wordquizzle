@@ -9,6 +9,11 @@ import java.util.concurrent.LinkedBlockingQueue;
  * the user. Upon the execution of this task the QuizzleServer will return a
  * string with the contents of the user's friens list which is represented by
  * the field {@code friends} of the class {@link QuizzleUser}.
+ * 
+ * <p>
+ * The task doesn't directly communicate the result of the operation to the
+ * client, instead, it inserts in the QuizzleServer post depot a QuizzleMail
+ * class' instance that will be delivered to the client by the Mailman thread.
  */
 public class GetFriendListTask implements TaskInterface {
 
@@ -59,8 +64,10 @@ public class GetFriendListTask implements TaskInterface {
         // Retrieve the nickname form the port number.
         final int clientPort = clientSocket.socket().getPort();
         final String nickname = onlineUsers.get(clientPort);
+        // Retrieving the user's friend list.
         ArrayList<String> friends = database.retrieveUser(nickname).getFriends();
         String msg;
+        // Checking if the user has no friends.
         if (friends.size() != 0)
             msg = "Your friends are: ";
         else
@@ -70,6 +77,7 @@ public class GetFriendListTask implements TaskInterface {
             msg += f + " ";
         }
         msg += "\n";
+        // Inserting the results in the post depot.
         TaskInterface.insertMail(depot, key, msg);
     }
 }
