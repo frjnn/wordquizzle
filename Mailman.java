@@ -17,11 +17,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 public class Mailman implements TaskInterface {
 
     /**
-     * The QuizzleServer's selector.
-     */
-    private final Selector selector;
-
-    /**
      * The QuizzleServer's post depot.
      */
     private final LinkedBlockingQueue<QuizzleMail> postDepot;
@@ -33,7 +28,6 @@ public class Mailman implements TaskInterface {
      * @param queue the post depot.
      */
     public Mailman(Selector sel, LinkedBlockingQueue<QuizzleMail> queue) {
-        this.selector = sel;
         this.postDepot = queue;
     }
 
@@ -62,7 +56,7 @@ public class Mailman implements TaskInterface {
             // If the client logged out, the mailman "throws away his mailbox".
             if (!message.equals("Logout successful.\n")) {
                 key.interestOps(SelectionKey.OP_READ);
-                selector.wakeup();
+                // selector.wakeup();
             } else {
                 try {
                     clientSocket.close();

@@ -15,6 +15,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  * The MatchTask class implements the match between two users. The
@@ -71,9 +72,9 @@ public class MatchTask implements TaskInterface {
     private final ConcurrentHashMap<String, InetSocketAddress> matchBookAddress;
 
     /**
-     * The Selector of the code QuizzleServer.
+     * The QuizzleServer's post postDepot.
      */
-    private final Selector selector;
+    private final LinkedBlockingQueue<QuizzleMail> postDepot;
 
     /**
      * The SelectionKey with attached the Socket associated with the challenger's
@@ -111,7 +112,7 @@ public class MatchTask implements TaskInterface {
      * @param datab   the database.
      * @param onlineu the list of online users.
      * @param maddr   the list of online users UDP addresses.
-     * @param sel     the selector.
+     * @param dept    the server's post depot.
      * @param selk    the selection key of interest.
      * @param frnd    the friend to challenge.
      * @param n       the match legnth.
@@ -119,12 +120,12 @@ public class MatchTask implements TaskInterface {
      * @param l       the number of words.
      */
     public MatchTask(final QuizzleDatabase datab, final ConcurrentHashMap<Integer, String> onlineu,
-            final ConcurrentHashMap<String, InetSocketAddress> maddr, final Selector sel, final SelectionKey selk,
-            final String frnd, final int n, final int m, final int l) {
+            final ConcurrentHashMap<String, InetSocketAddress> maddr, final LinkedBlockingQueue<QuizzleMail> dept,
+            final SelectionKey selk, final String frnd, final int n, final int m, final int l) {
         this.database = datab;
         this.onlineUsers = onlineu;
         this.matchBookAddress = maddr;
-        this.selector = sel;
+        this.postDepot = dept;
         this.key = selk;
         this.friend = frnd;
         this.matchTimer = n;
@@ -135,7 +136,6 @@ public class MatchTask implements TaskInterface {
     public void run() {
 
         final SocketChannel clientSocket = (SocketChannel) key.channel();
-        final ByteBuffer bBuff = (ByteBuffer) key.attachment();
 
         // This is the variable where the response to be sent to the challenging client
         // is stored.
@@ -154,9 +154,8 @@ public class MatchTask implements TaskInterface {
         // friend's nickname.
         if (nickname.equals(friend)) {
             msg = "Match error: you cannot challenge yourself.\n";
-            TaskInterface.writeMsg(msg, bBuff, clientSocket);
+            TaskInterface.insertMail(postDepot, key, msg);
             key.interestOps(SelectionKey.OP_READ);
-            selector.wakeup();
             return;
         } else {
             // Check if the two users are friends.
@@ -164,17 +163,15 @@ public class MatchTask implements TaskInterface {
             final ArrayList<String> challengerFriends = challenger.getFriends();
             if (!(challengerFriends.contains(friend))) {
                 msg = "Match error: user " + friend + " and you are not friends.\n";
-                TaskInterface.writeMsg(msg, bBuff, clientSocket);
+                TaskInterface.insertMail(postDepot, key, msg);
                 key.interestOps(SelectionKey.OP_READ);
-                selector.wakeup();
                 return;
             } else {
                 // Check if the friend is offline.
                 if (!onlineUsers.containsValue(friend)) {
                     msg = "Match error: " + friend + " is offline\n";
-                    TaskInterface.writeMsg(msg, bBuff, clientSocket);
+                    TaskInterface.insertMail(postDepot, key, msg);
                     key.interestOps(SelectionKey.OP_READ);
-                    selector.wakeup();
                     return;
                 } else {
                     // Start the invitation login.
@@ -224,9 +221,8 @@ public class MatchTask implements TaskInterface {
                         // client knows to throw away the expired invitation.
                         byte[] friendMsg = ("TIMEOUT/" + nickname).getBytes();
                         TaskInterface.sendDatagram(invSocket, friendMsg, friendAddress);
-                        TaskInterface.writeMsg(msg, bBuff, clientSocket);
+                        TaskInterface.insertMail(postDepot, key, msg);
                         key.interestOps(SelectionKey.OP_READ);
-                        selector.wakeup();
                         return;
                     } catch (final IOException e) {
                         e.printStackTrace();
@@ -236,26 +232,22 @@ public class MatchTask implements TaskInterface {
                     // If the friends refuses must notify the challenging user.
                     if (response.equals("N")) {
                         msg = friend + " refused your match invitation.\n";
-                        TaskInterface.writeMsg(msg, bBuff, clientSocket);
+                        TaskInterface.insertMail(postDepot, key, msg);
                         key.interestOps(SelectionKey.OP_READ);
-                        selector.wakeup();
                         return;
                     } else if (response.equals("Y")) {
                         // The friends accepted the challenge must communicate to the challenging user
                         // the match socket port and prepare the words.
                         msg = friend + " accepted your match invitation./" + matchChannel.socket().getLocalPort()
                                 + "\n";
-                        TaskInterface.writeMsg(msg, bBuff, clientSocket);
+                        TaskInterface.insertMail(postDepot, key, msg);
                         boolean joined1 = false; // Challenging user joined status.
                         boolean joined2 = false; // Challenged user joined status.
-                        SocketChannel results1 = null; // Challenging user final score.
-                        ByteBuffer resultsBuff1 = null; // Challening user's buffer to write the final results into.
-                        SocketChannel results2 = null; // Challenged user final score.
-                        ByteBuffer resultsBuff2 = null; // Challenged user user's buffer to write the final results
-                                                        // into.
                         int challengedPort = 0; // Keeping trace of the challenged user port to distinguish the socket
                                                 // channels during the selection operation.
-                        // Getting the players addresses from the matchBookAddress.
+                        // Keeping track of the players by their key.
+                        SelectionKey key1 = null;
+                        SelectionKey key2 = null;
                         InetAddress add1 = matchBookAddress.get(nickname).getAddress();
                         InetAddress add2 = matchBookAddress.get(friend).getAddress();
                         // Waiting for both players to join the match.
@@ -280,20 +272,23 @@ public class MatchTask implements TaskInterface {
                                                 final ByteBuffer clientBuff = ByteBuffer.allocate(256);
                                                 // Checking the addresses.
                                                 if (addr.equals(add1) && !joined1) {
-                                                    results1 = client;
+                                                    client.configureBlocking(false);
+                                                    // Registering the client socket for read operations.
+                                                    final SelectionKey clientKey = client.register(matchSelector,
+                                                            SelectionKey.OP_READ);
+                                                    clientKey.attach(clientBuff);
+                                                    key1 = clientKey;
                                                     joined1 = true;
-                                                    resultsBuff1 = clientBuff;
                                                 } else if (addr.equals(add2) && !joined2) {
-                                                    results2 = client;
+                                                    client.configureBlocking(false);
+                                                    // Registering the client socket for read operations.
+                                                    final SelectionKey clientKey = client.register(matchSelector,
+                                                            SelectionKey.OP_READ);
+                                                    clientKey.attach(clientBuff);
+                                                    key2 = clientKey;
                                                     challengedPort = client.socket().getPort();
                                                     joined2 = true;
-                                                    resultsBuff2 = clientBuff;
                                                 }
-                                                client.configureBlocking(false);
-                                                // Registering the client socket for read operations.
-                                                final SelectionKey clientKey = client.register(matchSelector,
-                                                        SelectionKey.OP_READ);
-                                                clientKey.attach(clientBuff);
                                             } catch (final IOException e) {
                                                 e.printStackTrace();
                                             }
@@ -370,10 +365,9 @@ public class MatchTask implements TaskInterface {
                                             } else {
                                                 if (!available) {
                                                     // The mymemoryAPI is down.
-                                                    TaskInterface.writeMsg(
+                                                    TaskInterface.insertMail(postDepot, key,
                                                             "Sorry, the translation service is unavailable. Try later."
-                                                                    + "\n",
-                                                            clientBuff, clientChann);
+                                                                    + "\n");
                                                     if (clientChann.socket().getPort() == challengedPort) {
                                                         term1 = true;
                                                     } else {
@@ -387,26 +381,24 @@ public class MatchTask implements TaskInterface {
                                                     // been adopted. This protocol imposes that the translations must be
                                                     // followed by the nickname of the client that sen them.
                                                     if (translation.equals("START/" + friend)) {
-                                                        TaskInterface.writeMsg(words[index2] + "\n", clientBuff,
-                                                                clientChann);
+                                                        TaskInterface.insertMail(postDepot, key, words[index2] + "\n");
                                                         index2++;
                                                     } else if (translation.equals("START/" + nickname)) {
-                                                        TaskInterface.writeMsg(words[index1] + "\n", clientBuff,
-                                                                clientChann);
+                                                        TaskInterface.insertMail(postDepot, key, words[index1] + "\n");
                                                         index1++;
                                                     } else {
                                                         if (name.equals(friend)) {
                                                             response2[index2 - 1] = split[0];
                                                             if (index2 < matchWords) {
-                                                                TaskInterface.writeMsg(words[index2] + "\n", clientBuff,
-                                                                        clientChann);
+                                                                TaskInterface.insertMail(postDepot, key,
+                                                                        words[index2] + "\n");
                                                             }
                                                             index2++;
                                                         } else if (name.equals(nickname)) {
                                                             response1[index1 - 1] = split[0];
                                                             if (index1 < matchWords) {
-                                                                TaskInterface.writeMsg(words[index1] + "\n", clientBuff,
-                                                                        clientChann);
+                                                                TaskInterface.insertMail(postDepot, key,
+                                                                        words[index1] + "\n");
                                                             }
                                                             index1++;
                                                         }
@@ -460,26 +452,27 @@ public class MatchTask implements TaskInterface {
                                 msg1 = msg2 = "drew";
                             // Building the results messages.
                             if (currentTime < (startTime + (matchTimer * 60000))) {
-                                TaskInterface.writeMsg(
-                                        "END/You have scored: " + score1 + " points. You " + msg1 + ".\n", resultsBuff1,
-                                        results1);
-                                TaskInterface.writeMsg(
-                                        "END/You have scored: " + score2 + " points. You " + msg2 + ".\n", resultsBuff2,
-                                        results2);
+                                if (key1.isValid())
+                                    TaskInterface.insertMail(postDepot, key1,
+                                            "END/You have scored: " + score1 + " points. You " + msg1 + ".\n");
+                                if (key2.isValid())
+                                    TaskInterface.insertMail(postDepot, key2,
+                                            "END/You have scored: " + score2 + " points. You " + msg2 + ".\n");
+
                             } else {
-                                TaskInterface.writeMsg(
-                                        "END/Time out: you have scored: " + score1 + " points. You " + msg1 + ".\n",
-                                        resultsBuff1, results1);
-                                TaskInterface.writeMsg(
-                                        "END/Time out: you have scored: " + score2 + " points. You " + msg2 + "\n",
-                                        resultsBuff2, results2);
+                                if (key1.isValid())
+                                    TaskInterface.insertMail(postDepot, key1, "END/Time out: you have scored: " + score1
+                                            + " points. You " + msg1 + ".\n");
+                                if (key2.isValid())
+                                    TaskInterface.insertMail(postDepot, key2,
+                                            "END/Time out: you have scored: " + score2 + " points. You " + msg2 + "\n");
                             }
                             // Setting the scores in the database.
                             database.setScore(nickname, score1);
                             database.setScore(friend, score2);
                         }
-                        key.interestOps(SelectionKey.OP_READ);
-                        selector.wakeup();
+                        if (key.isValid())
+                            key.interestOps(SelectionKey.OP_READ);
                         return;
                     }
                 }

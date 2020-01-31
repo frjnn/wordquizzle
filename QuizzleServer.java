@@ -305,7 +305,7 @@ public class QuizzleServer extends UnicastRemoteObject implements RegistrationRM
             try {
                 // The number of keys upon which an accept connection operation or a read
                 // operation can be performed.
-                final int readyKeys = server.selector.select();
+                final int readyKeys = server.selector.selectNow();
                 if (readyKeys > 0) {
                     // The set containing those keys, and an iterator over this set.
                     final Set<SelectionKey> keys = server.selector.selectedKeys();
@@ -452,7 +452,7 @@ public class QuizzleServer extends UnicastRemoteObject implements RegistrationRM
                                         // Match Operation.
                                         final String challenged = procArgs[1];
                                         final MatchTask matchtsk = new MatchTask(server.database, server.onlineUsers,
-                                                server.matchAddressBook, server.selector, key, challenged,
+                                                server.matchAddressBook, server.postDepot, key, challenged,
                                                 server.matchDuration, server.acceptDuration, server.numWords);
                                         server.threadpool.execute(matchtsk);
                                         break;
